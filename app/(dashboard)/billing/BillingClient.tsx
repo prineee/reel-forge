@@ -62,7 +62,7 @@ export default function BillingClient({ currentPlan, userEmail }: Props) {
 
       await new Promise<void>((resolve, reject) => {
         const rzp = new window.Razorpay({
-          key:         order.keyId,
+          key:         order.keyId,  // RAZORPAY_KEY_ID from server env
           amount:      order.amount,
           currency:    order.currency,
           name:        'AI ReelForge',
@@ -73,6 +73,45 @@ export default function BillingClient({ currentPlan, userEmail }: Props) {
           prefill:  { email: userEmail },
           theme:    { color: '#6366f1' },
           modal:    { ondismiss: () => reject(new Error('dismissed')) },
+          config: {
+            display: {
+              blocks: {
+                upi: {
+                  name: 'Pay via UPI',
+                  instruments: [{ method: 'upi' }],
+                },
+                gpay: {
+                  name: 'Google Pay',
+                  instruments: [{ method: 'upi', flows: ['intent'], apps: ['google_pay'] }],
+                },
+                paytm: {
+                  name: 'Paytm',
+                  instruments: [{ method: 'upi', flows: ['intent'], apps: ['paytm'] }],
+                },
+                phonpe: {
+                  name: 'PhonePe',
+                  instruments: [{ method: 'upi', flows: ['intent'], apps: ['phonepe'] }],
+                },
+                cards: {
+                  name: 'Cards',
+                  instruments: [{ method: 'card' }],
+                },
+                netbanking: {
+                  name: 'Net Banking',
+                  instruments: [{ method: 'netbanking' }],
+                },
+              },
+              sequence: [
+                'block.upi',
+                'block.gpay',
+                'block.paytm',
+                'block.phonpe',
+                'block.cards',
+                'block.netbanking',
+              ],
+              preferences: { show_default_blocks: false },
+            },
+          },
           handler:  async (response: {
             razorpay_payment_id: string
             razorpay_order_id: string
