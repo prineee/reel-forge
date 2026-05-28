@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { requireCredits } from '@/lib/credits'
 import Replicate from 'replicate'
+import Groq from 'groq-sdk'
 import crypto from 'crypto'
 
 const STYLE_PROMPTS: Record<string, string> = {
@@ -16,8 +17,8 @@ const STYLE_PROMPTS: Record<string, string> = {
 
 const STYLE_MAP: Record<string, 'realistic' | 'cartoon' | 'minimalist' | 'cinematic' | 'anime'> = {
   MrBeast: 'cinematic',
-  Clean: 'minimalist',
-  Dark: 'realistic',
+  Clean:   'minimalist',
+  Dark:    'realistic',
   Minimal: 'minimalist',
 }
 
@@ -26,9 +27,7 @@ export async function POST(request: Request) {
   if (!check.ok) return check.response
 
   const supabase = createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await request.json()
@@ -37,21 +36,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'title, niche, and style are required' }, { status: 400 })
   }
 
-  // Step 1: Generate a detailed Stability AI prompt via OpenAI
+  // Step 1: Generate a detailed Stability AI prompt via Groq
   let imagePrompt: string
   try {
-    const oaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'user',
-            content: `You are an expert Stable Diffusion prompt engineer specializing in YouTube thumbnails.
+    const groqApiKey = process.env.GROQ_API_KEY
+    if (!groqApiKey) throw new Error('Groq API key not configured')
+
+    const groq = new Groq({ apiKey: groqApiKey })
+    const completion = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages: [
+        {
+          role: 'user',
+          content: `You are an expert Stable Diffusion prompt engineer specializing in YouTube thumbnails.
 Write a detailed image generation prompt for a thumbnail with:
 - Title concept: "${title}"
 - Content niche: ${niche}
@@ -65,16 +62,13 @@ Requirements:
 • Style-appropriate color grading
 
 Reply with ONLY the prompt string. No explanation, no quotes.`,
-          },
-        ],
-        max_tokens: 300,
-        temperature: 0.75,
-      }),
+        },
+      ],
+      max_tokens: 300,
+      temperature: 0.75,
     })
-    if (!oaiRes.ok) throw new Error(`OpenAI status ${oaiRes.status}`)
-    const oaiData = await oaiRes.json()
     imagePrompt =
-      oaiData.choices?.[0]?.message?.content?.trim() ??
+      completion.choices[0]?.message?.content?.trim() ??
       `${niche} themed scene, ${STYLE_PROMPTS[style]}, 4K photorealistic, vivid colors`
   } catch {
     imagePrompt = `${niche} YouTube thumbnail background, ${STYLE_PROMPTS[style] ?? ''}, 4K photorealistic, no text`
@@ -111,7 +105,7 @@ Reply with ONLY the prompt string. No explanation, no quotes.`,
     return NextResponse.json({ error: 'Image generation failed', detail: String(err) }, { status: 502 })
   }
 
-  // Step 3: Upload to Cloudinary (if CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET are configured)
+  // Step 3: Upload to Cloudinary
   let finalImageUrl = replicateImageUrl
   const cloudName   = process.env.CLOUDINARY_CLOUD_NAME
   const apiKey      = process.env.CLOUDINARY_API_KEY
@@ -126,11 +120,11 @@ Reply with ONLY the prompt string. No explanation, no quotes.`,
         .digest('hex')
 
       const form = new FormData()
-      form.append('file', replicateImageUrl)
-      form.append('api_key', apiKey)
+      form.append('file',      replicateImageUrl)
+      form.append('api_key',   apiKey)
       form.append('timestamp', timestamp)
       form.append('signature', signature)
-      form.append('folder', folder)
+      form.append('folder',    folder)
 
       const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
         method: 'POST',
@@ -148,10 +142,10 @@ Reply with ONLY the prompt string. No explanation, no quotes.`,
   // Step 4: Save record to Supabase thumbnails table
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (supabase.from('thumbnails') as any).insert({
-    user_id: user.id,
-    prompt: imagePrompt,
+    user_id:   user.id,
+    prompt:    imagePrompt,
     image_url: finalImageUrl,
-    style: STYLE_MAP[style] ?? 'cinematic',
+    style:     STYLE_MAP[style] ?? 'cinematic',
   })
 
   return NextResponse.json({ imageUrl: finalImageUrl, prompt: imagePrompt })

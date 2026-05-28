@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import Groq from 'groq-sdk'
 
 export interface Scene {
   number: number
@@ -36,13 +37,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'topic is required' }, { status: 400 })
   }
 
-  const apiKey = process.env.OPENAI_API_KEY
-  if (!apiKey) {
-    return NextResponse.json({ error: 'OpenAI API key not configured' }, { status: 500 })
+  const groqApiKey = process.env.GROQ_API_KEY
+  if (!groqApiKey) {
+    return NextResponse.json({ error: 'Groq API key not configured' }, { status: 500 })
   }
 
-  const p       = platform ?? 'Reels'
-  const guide   = PLATFORM_GUIDE[p] ?? p
+  const p     = platform ?? 'Reels'
+  const guide = PLATFORM_GUIDE[p] ?? p
 
   const prompt = `You are a viral short-form video script writer specialising in ${p} content.
 
@@ -71,46 +72,33 @@ Respond ONLY with valid JSON:
   ]
 }`
 
-  let oaiRes: Response
+  const groq = new Groq({ apiKey: groqApiKey })
+
+  let raw: string
   try {
-    oaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a viral short-form video script writer. Always respond with valid JSON only — no markdown, no commentary.',
-          },
-          { role: 'user', content: prompt },
-        ],
-        temperature: 0.75,
-        max_tokens: 1400,
-        response_format: { type: 'json_object' },
-      }),
+    const completion = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a viral short-form video script writer. Always respond with valid JSON only — no markdown, no commentary.',
+        },
+        { role: 'user', content: prompt },
+      ],
+      temperature: 0.75,
+      max_tokens: 1400,
+      response_format: { type: 'json_object' },
     })
-  } catch {
-    return NextResponse.json({ error: 'Failed to reach OpenAI.' }, { status: 502 })
+    raw = completion.choices[0]?.message?.content ?? ''
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Groq API error'
+    return NextResponse.json({ error: msg }, { status: 502 })
   }
 
-  if (!oaiRes.ok) {
-    const err = await oaiRes.json().catch(() => ({}))
-    return NextResponse.json(
-      { error: (err as { error?: { message?: string } }).error?.message ?? `OpenAI error ${oaiRes.status}` },
-      { status: oaiRes.status }
-    )
-  }
-
-  const data = await oaiRes.json()
-  const raw  = (data.choices?.[0]?.message?.content ?? '').trim()
-    .replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '')
+  const jsonStr = raw.trim().replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '')
 
   try {
-    const result = JSON.parse(raw) as ReelScript
+    const result = JSON.parse(jsonStr) as ReelScript
     if (!result.title || !Array.isArray(result.scenes) || result.scenes.length === 0) {
       throw new Error('Incomplete')
     }

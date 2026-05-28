@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { requireCredits } from '@/lib/credits'
+import Groq from 'groq-sdk'
 
 const TONE_PROMPTS: Record<string, string> = {
   Funny:        'humorous and witty — use jokes, wordplay, and relatable situations to make people laugh and share',
@@ -19,9 +20,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'topic, niche, and tone are required' }, { status: 400 })
   }
 
-  const apiKey = process.env.OPENAI_API_KEY
-  if (!apiKey) {
-    return NextResponse.json({ error: 'OpenAI API key not configured on the server' }, { status: 500 })
+  const groqApiKey = process.env.GROQ_API_KEY
+  if (!groqApiKey) {
+    return NextResponse.json({ error: 'Groq API key not configured on the server' }, { status: 500 })
   }
 
   const toneGuide = TONE_PROMPTS[tone] ?? tone
@@ -39,40 +40,28 @@ Write:
 Respond ONLY with valid JSON, no markdown fences, no extra keys:
 {"hookLine":"...","caption":"...","hashtags":["#tag1","#tag2","#tag3","#tag4","#tag5"]}`
 
-  let openAIRes: Response
+  const groq = new Groq({ apiKey: groqApiKey })
+
+  let raw: string
   try {
-    openAIRes = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a viral social media caption writer. Always respond with valid JSON only — no markdown, no commentary.',
-          },
-          { role: 'user', content: prompt },
-        ],
-        temperature: 0.85,
-        max_tokens: 800,
-        response_format: { type: 'json_object' },
-      }),
+    const completion = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a viral social media caption writer. Always respond with valid JSON only — no markdown, no commentary.',
+        },
+        { role: 'user', content: prompt },
+      ],
+      temperature: 0.85,
+      max_tokens: 800,
+      response_format: { type: 'json_object' },
     })
-  } catch {
-    return NextResponse.json({ error: 'Failed to reach OpenAI. Check your network.' }, { status: 502 })
+    raw = completion.choices[0]?.message?.content ?? ''
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Groq API error'
+    return NextResponse.json({ error: msg }, { status: 502 })
   }
-
-  if (!openAIRes.ok) {
-    const errBody = await openAIRes.json().catch(() => ({}))
-    const message = (errBody as { error?: { message?: string } }).error?.message ?? `OpenAI error ${openAIRes.status}`
-    return NextResponse.json({ error: message }, { status: openAIRes.status })
-  }
-
-  const data = await openAIRes.json()
-  const raw: string = data.choices?.[0]?.message?.content ?? ''
 
   // Strip markdown code fences just in case
   const jsonStr = raw.trim().replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '')
