@@ -4,8 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Check, CreditCard, Zap, Image, Mic, Video, FileText } from 'lucide-react'
 import { formatDate, formatCurrency } from '@/lib/utils'
+import { PLAN_CREDITS, PLAN_BY_DB, type DbPlan } from '@/lib/plans'
 import BillingClient from './BillingClient'
-import type { DbPlan } from '@/lib/plans'
+import { cn } from '@/lib/utils'
 
 export const metadata = { title: 'Billing' }
 
@@ -17,15 +18,14 @@ const FREE_FEATURES = [
 ]
 
 const CREDIT_GUIDE = [
-  { icon: Image,    label: 'AI Thumbnail',  cost: 1 },
+  { icon: Image,    label: 'AI Thumbnail',     cost: 1 },
   { icon: FileText, label: 'Script / Caption', cost: 1 },
-  { icon: Mic,      label: 'Voiceover',     cost: 2 },
-  { icon: Video,    label: 'Full Reel',     cost: 5 },
+  { icon: Mic,      label: 'Voiceover',        cost: 2 },
+  { icon: Video,    label: 'Full Reel',        cost: 5 },
 ]
 
 export default async function BillingPage() {
   const supabase = createClient()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
@@ -47,6 +47,14 @@ export default async function BillingPage() {
   const credits     = profile?.credits ?? 0
   const isFreePlan  = currentPlan === 'free'
 
+  const maxCredits = PLAN_CREDITS[currentPlan]
+  const creditPct  = maxCredits > 0 ? Math.min(Math.round((credits / maxCredits) * 100), 100) : 0
+  const planInfo   = PLAN_BY_DB[currentPlan]
+
+  const barColor = creditPct > 50 ? 'from-green-500 to-emerald-500'
+    : creditPct > 20             ? 'from-yellow-500 to-amber-500'
+    :                              'from-red-500 to-rose-500'
+
   return (
     <div className="max-w-5xl space-y-8">
       <div>
@@ -54,21 +62,45 @@ export default async function BillingPage() {
         <p className="text-gray-400 text-sm">Manage your plan and payment history.</p>
       </div>
 
-      {/* ── Current Plan Summary ── */}
+      {/* ── Current Plan + Credits ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Plan card */}
         <Card>
-          <CardContent className="flex items-center gap-4 py-5">
-            <div className="w-12 h-12 rounded-xl bg-brand-950 border border-brand-800 flex items-center justify-center shrink-0">
-              <Zap className="w-6 h-6 text-brand-400" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 mb-0.5">
-                <span className="font-bold text-lg capitalize">{currentPlan} Plan</span>
-                <Badge variant="info">Active</Badge>
+          <CardContent className="py-5 space-y-4">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-brand-950 border border-brand-800 flex items-center justify-center shrink-0">
+                <Zap className="w-6 h-6 text-brand-400" />
               </div>
-              <p className="text-sm text-gray-400">
-                <span className="text-white font-semibold">{credits}</span> credits remaining
-              </p>
+              <div>
+                <div className="flex items-center gap-2 mb-0.5">
+                  <span className="font-bold text-lg capitalize">{currentPlan} Plan</span>
+                  <Badge variant="info">Active</Badge>
+                </div>
+                {planInfo && (
+                  <p className="text-xs text-gray-500 capitalize">{planInfo.credits} credits / month</p>
+                )}
+              </div>
+            </div>
+
+            {/* Credits progress bar */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs text-gray-400">Credits remaining</span>
+                <span className="text-xs font-semibold text-white">
+                  {credits} <span className="text-gray-600 font-normal">/ {maxCredits}</span>
+                </span>
+              </div>
+              <div className="h-2 bg-surface rounded-full overflow-hidden">
+                <div
+                  className={cn('h-full rounded-full bg-gradient-to-r transition-all duration-500', barColor)}
+                  style={{ width: `${creditPct}%` }}
+                />
+              </div>
+              {creditPct <= 20 && (
+                <p className="text-xs text-red-400 mt-1.5">
+                  Running low — upgrade to get more credits.
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>

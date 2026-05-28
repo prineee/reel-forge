@@ -1,15 +1,15 @@
-export type PlanKey = 'starter' | 'pro' | 'agency'
+export type PlanKey = 'starter' | 'pro' | 'agency' | 'lifetime'
 export type DbPlan  = 'free' | 'starter' | 'pro' | 'enterprise'
 
 export interface Plan {
-  key: PlanKey
-  dbPlan: DbPlan
-  name: string
-  priceINR: number
-  priceUSD: number
-  credits: number
+  key:        PlanKey
+  dbPlan:     DbPlan
+  name:       string
+  priceINR:   number
+  priceUSD:   number
+  credits:    number
   highlight?: boolean
-  features: string[]
+  features:   string[]
 }
 
 export const PLANS: Plan[] = [
@@ -64,12 +64,35 @@ export const PLANS: Plan[] = [
   },
 ]
 
-export const PLAN_BY_KEY = Object.fromEntries(PLANS.map(p => [p.key, p])) as Record<PlanKey, Plan>
-export const PLAN_BY_DB  = Object.fromEntries(PLANS.map(p => [p.dbPlan, p])) as Partial<Record<DbPlan, Plan>>
+// Separate lifetime deal — Razorpay only, maps to Pro plan in the DB
+export const LIFETIME_DEAL: Plan = {
+  key: 'lifetime',
+  dbPlan: 'pro',
+  name: 'Pro Lifetime',
+  priceINR: 2999,
+  priceUSD: 36,   // used for affiliate commission calculation only
+  credits: 500,
+  features: [
+    '500 credits · one-time',
+    'Everything in Pro',
+    'No recurring charges',
+    'Lifetime access',
+    'All future Pro updates',
+    'Priority support forever',
+  ],
+}
+
+export const PLAN_BY_KEY = Object.fromEntries(
+  [...PLANS, LIFETIME_DEAL].map(p => [p.key, p])
+) as Record<PlanKey, Plan>
+
+export const PLAN_BY_DB = Object.fromEntries(
+  PLANS.map(p => [p.dbPlan, p])
+) as Partial<Record<DbPlan, Plan>>
 
 export const PLAN_CREDITS: Record<DbPlan, number> = {
-  free: 10,
-  starter: 100,
-  pro: 500,
+  free:       10,
+  starter:    100,
+  pro:        500,
   enterprise: 2000,
 }

@@ -38,8 +38,8 @@ export async function POST(request: Request) {
     // Embed plan + user in metadata so the webhook can act without looking up the session
     metadata: { plan, user_id: user.id },
     customer_email: user.email ?? undefined,
-    success_url: `${siteUrl}/dashboard/billing?stripe=success&session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${siteUrl}/dashboard/billing?stripe=cancelled`,
+    success_url: `${siteUrl}/billing?stripe=success&session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url:  `${siteUrl}/billing?stripe=cancelled`,
   })
 
   return NextResponse.json({ url: session.url })
