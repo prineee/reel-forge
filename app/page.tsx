@@ -1,0 +1,362 @@
+import Link from 'next/link'
+import {
+  Video, Image, MessageSquare, Zap, Shield, BarChart3,
+  ArrowRight, Star, Check, Play, Users, Globe, Clock,
+} from 'lucide-react'
+import FaqAccordion from '@/components/FaqAccordion'
+
+const FEATURES = [
+  { icon: Video,        title: 'AI Reel Creator',      desc: 'Generate scroll-stopping video reels from a text prompt in seconds — no editing skills required.' },
+  { icon: Image,        title: 'Thumbnail Generator',  desc: 'Create eye-catching AI thumbnails with style presets: MrBeast, Clean, Dark, Minimal.' },
+  { icon: MessageSquare,title: 'Auto Captions',        desc: 'Accurate captions in 50+ languages with one click — perfect for global reach.' },
+  { icon: Zap,          title: 'Instant Processing',   desc: 'Cloud-powered rendering delivers your finished content in minutes, not hours.' },
+  { icon: Shield,       title: 'Commercial License',   desc: 'All AI-generated content is commercially licensed and safe for monetised use.' },
+  { icon: BarChart3,    title: 'Analytics Dashboard',  desc: 'Track credits, projects, and performance at a glance — everything in one place.' },
+]
+
+const STATS = [
+  { label: 'Creators',      value: '10K+',  icon: Users },
+  { label: 'Videos Created',value: '500K+', icon: Video },
+  { label: 'Languages',     value: '50+',   icon: Globe },
+  { label: 'Uptime',        value: '99.9%', icon: Clock },
+]
+
+const PLANS = [
+  {
+    name: 'Free',
+    priceINR: null,
+    priceUSD: null,
+    credits: 10,
+    features: ['10 lifetime credits', '720p exports', 'Watermarked output', 'Community support'],
+    cta: 'Start for Free',
+    href: '/register',
+    highlight: false,
+  },
+  {
+    name: 'Starter',
+    priceINR: '₹499',
+    priceUSD: '$6',
+    credits: 100,
+    features: ['100 credits', '1080p exports', 'All content tools', 'Email support'],
+    cta: 'Get Starter',
+    href: '/register',
+    highlight: false,
+  },
+  {
+    name: 'Pro',
+    priceINR: '₹1,499',
+    priceUSD: '$18',
+    credits: 500,
+    features: ['500 credits', '4K exports', 'All content tools', 'Priority support', 'Affiliate program'],
+    cta: 'Get Pro',
+    href: '/register',
+    highlight: true,
+  },
+  {
+    name: 'Agency',
+    priceINR: '₹4,999',
+    priceUSD: '$60',
+    credits: 2000,
+    features: ['2,000 credits', '4K exports', 'API access', 'Dedicated manager', 'Custom branding'],
+    cta: 'Get Agency',
+    href: '/register',
+    highlight: false,
+  },
+]
+
+const TESTIMONIALS = [
+  {
+    name: 'Sarah Johnson',
+    role: 'Fitness Creator · 420K followers',
+    avatar: 'SJ',
+    rating: 5,
+    quote: 'I went from spending 3 hours on a single reel to publishing 5 a day. AI ReelForge literally 10×ed my output — and the thumbnails are fire.',
+  },
+  {
+    name: 'Marcus Chen',
+    role: 'Finance YouTuber · 1.2M subscribers',
+    avatar: 'MC',
+    rating: 5,
+    quote: 'The script tool nails the hook-problem-solution format every time. My click-through rate went up 40% in the first two weeks.',
+  },
+  {
+    name: 'Priya Sharma',
+    role: 'Social Media Agency Owner',
+    avatar: 'PS',
+    rating: 5,
+    quote: 'We use the Agency plan for all our clients. The credit system makes it dead simple to track costs per project. ROI is insane.',
+  },
+]
+
+export default function HomePage() {
+  return (
+    <div className="min-h-screen bg-surface text-white">
+      {/* ── Nav ── */}
+      <nav className="border-b border-surface-border backdrop-blur-md bg-surface/80 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-purple-500 flex items-center justify-center">
+              <Video className="w-4 h-4 text-white" />
+            </div>
+            <span className="font-bold text-lg">AI ReelForge</span>
+          </div>
+          <div className="hidden md:flex items-center gap-8 text-sm text-gray-400">
+            <a href="#features"      className="hover:text-white transition-colors">Features</a>
+            <a href="#pricing"       className="hover:text-white transition-colors">Pricing</a>
+            <a href="#testimonials"  className="hover:text-white transition-colors">Reviews</a>
+            <a href="#faq"           className="hover:text-white transition-colors">FAQ</a>
+            <a href="#affiliate"     className="hover:text-white transition-colors">Affiliate</a>
+          </div>
+          <div className="flex items-center gap-3">
+            <Link href="/login"    className="text-sm text-gray-400 hover:text-white transition-colors px-4 py-2">Sign In</Link>
+            <Link href="/register" className="text-sm bg-brand-600 hover:bg-brand-500 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+              Get Started
+            </Link>
+          </div>
+        </div>
+      </nav>
+
+      {/* ── Hero ── */}
+      <section className="relative pt-24 pb-20 px-6 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-brand-950/50 via-transparent to-purple-950/30 pointer-events-none" />
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[700px] h-[700px] bg-brand-600/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-40 right-10 w-72 h-72 bg-purple-600/8 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative max-w-4xl mx-auto text-center">
+          <div className="inline-flex items-center gap-2 bg-brand-950 border border-brand-800 text-brand-300 text-xs font-medium px-3 py-1.5 rounded-full mb-6">
+            <Star className="w-3 h-3 fill-brand-400 text-brand-400" />
+            Trusted by 10,000+ creators worldwide
+          </div>
+          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 leading-tight">
+            Create Viral Reels{' '}
+            <br className="hidden sm:block" />
+            <span className="gradient-text">in 1 Click with AI</span>
+          </h1>
+          <p className="text-xl text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed">
+            Script to reel in minutes. Generate videos, thumbnails, and captions powered by AI — no editing skills required.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link
+              href="/register"
+              className="inline-flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-500 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200 hover:shadow-lg hover:shadow-brand-600/25"
+            >
+              Start for Free <ArrowRight className="w-5 h-5" />
+            </Link>
+            <a
+              href="#features"
+              className="inline-flex items-center justify-center gap-2 bg-surface-card border border-surface-border hover:border-brand-700 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200"
+            >
+              <Play className="w-5 h-5" /> See How It Works
+            </a>
+          </div>
+          <p className="mt-4 text-sm text-gray-500">No credit card required &bull; 10 free credits on signup</p>
+        </div>
+      </section>
+
+      {/* ── Stats strip ── */}
+      <section className="border-y border-surface-border bg-surface-card/40 py-8 px-6">
+        <div className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+          {STATS.map(({ label, value, icon: Icon }) => (
+            <div key={label} className="flex flex-col items-center gap-2">
+              <Icon className="w-5 h-5 text-brand-400" />
+              <span className="text-2xl font-extrabold">{value}</span>
+              <span className="text-xs text-gray-500 uppercase tracking-wide">{label}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Demo video ── */}
+      <section className="py-20 px-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="relative rounded-2xl overflow-hidden border border-surface-border bg-surface-card aspect-video flex items-center justify-center">
+            <div className="absolute inset-0 bg-gradient-to-br from-brand-950/60 via-transparent to-purple-950/40" />
+            <div className="relative flex flex-col items-center gap-4 text-center">
+              <button className="w-20 h-20 rounded-full bg-brand-600/90 hover:bg-brand-500 backdrop-blur-sm flex items-center justify-center transition-all duration-200 hover:scale-105 shadow-xl shadow-brand-600/30">
+                <Play className="w-8 h-8 text-white ml-1" fill="white" />
+              </button>
+              <p className="text-gray-400 text-sm">Watch how a creator built 5 reels in under 10 minutes</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Features ── */}
+      <section id="features" className="py-20 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-14">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Everything you need to go viral</h2>
+            <p className="text-gray-400 text-lg max-w-2xl mx-auto">
+              A complete AI studio for content creators, marketers, and agencies.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {FEATURES.map((f) => (
+              <div key={f.title} className="card p-6 hover:border-brand-700/50 transition-colors group">
+                <div className="w-11 h-11 rounded-lg bg-brand-950 border border-brand-800 flex items-center justify-center mb-4 group-hover:border-brand-600 transition-colors">
+                  <f.icon className="w-5 h-5 text-brand-400" />
+                </div>
+                <h3 className="font-semibold text-lg mb-2">{f.title}</h3>
+                <p className="text-gray-400 text-sm leading-relaxed">{f.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Testimonials ── */}
+      <section id="testimonials" className="py-20 px-6 bg-surface-card/20">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-14">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Loved by creators</h2>
+            <p className="text-gray-400 text-lg">Real results from real creators.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {TESTIMONIALS.map((t) => (
+              <div key={t.name} className="card p-6 flex flex-col gap-4">
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: t.rating }).map((_, i) => (
+                    <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                  ))}
+                </div>
+                <p className="text-gray-300 text-sm leading-relaxed flex-1">&ldquo;{t.quote}&rdquo;</p>
+                <div className="flex items-center gap-3 pt-2 border-t border-surface-border">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-600 to-purple-600 flex items-center justify-center text-xs font-bold text-white shrink-0">
+                    {t.avatar}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold">{t.name}</p>
+                    <p className="text-xs text-gray-500">{t.role}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Pricing ── */}
+      <section id="pricing" className="py-20 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-14">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Simple, transparent pricing</h2>
+            <p className="text-gray-400 text-lg mb-2">Start free. Scale as you grow.</p>
+            <p className="text-xs text-gray-500">Indian users pay in ₹ via Razorpay &bull; International users pay in $ via Stripe</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {PLANS.map((plan) => (
+              <div
+                key={plan.name}
+                className={`card p-7 relative flex flex-col ${
+                  plan.highlight ? 'border-brand-600 ring-1 ring-brand-600' : 'hover:border-brand-800 transition-colors'
+                }`}
+              >
+                {plan.highlight && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-brand-600 text-white text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap">
+                    Most Popular
+                  </div>
+                )}
+                <div className="mb-5">
+                  <p className="text-gray-400 text-sm font-medium mb-2">{plan.name}</p>
+                  {plan.priceINR ? (
+                    <div className="space-y-0.5">
+                      <div className="flex items-end gap-1">
+                        <span className="text-3xl font-extrabold">{plan.priceINR}</span>
+                      </div>
+                      <p className="text-xs text-gray-500">{plan.priceUSD} USD</p>
+                    </div>
+                  ) : (
+                    <div className="flex items-end gap-1">
+                      <span className="text-3xl font-extrabold">Free</span>
+                    </div>
+                  )}
+                  <p className="text-xs text-brand-400 mt-1 font-medium">{plan.credits.toLocaleString()} credits</p>
+                </div>
+                <ul className="space-y-2.5 mb-7 flex-1">
+                  {plan.features.map((feat) => (
+                    <li key={feat} className="flex items-center gap-2 text-xs text-gray-300">
+                      <Check className="w-3.5 h-3.5 text-brand-400 shrink-0" />
+                      {feat}
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href={plan.href}
+                  className={`w-full text-center py-2.5 rounded-lg font-semibold text-sm transition-colors ${
+                    plan.highlight
+                      ? 'bg-brand-600 hover:bg-brand-500 text-white'
+                      : 'bg-surface border border-surface-border hover:border-brand-700 text-white'
+                  }`}
+                >
+                  {plan.cta}
+                </Link>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── FAQ ── */}
+      <section id="faq" className="py-20 px-6 bg-surface-card/20">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-14">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Frequently asked questions</h2>
+            <p className="text-gray-400 text-lg">Everything you need to know.</p>
+          </div>
+          <FaqAccordion />
+        </div>
+      </section>
+
+      {/* ── Affiliate CTA ── */}
+      <section id="affiliate" className="py-20 px-6">
+        <div className="max-w-3xl mx-auto text-center">
+          <div className="card p-10 border-brand-800/50 bg-gradient-to-br from-brand-950/50 to-purple-950/30 relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-brand-600/5 to-purple-600/5 pointer-events-none" />
+            <div className="relative">
+              <div className="inline-flex items-center gap-2 bg-brand-900/60 border border-brand-700 text-brand-300 text-xs font-medium px-3 py-1.5 rounded-full mb-5">
+                <Star className="w-3 h-3 fill-brand-400 text-brand-400" />
+                Affiliate Program
+              </div>
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">Earn 30% commission</h2>
+              <p className="text-gray-400 text-lg mb-8 max-w-lg mx-auto">
+                Share your unique referral link. Earn 30% on every payment made by creators you refer — credited to your balance instantly.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Link
+                  href="/register"
+                  className="inline-flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-500 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-colors"
+                >
+                  Join as Affiliate <ArrowRight className="w-5 h-5" />
+                </Link>
+                <Link
+                  href="/dashboard/affiliate"
+                  className="inline-flex items-center justify-center gap-2 bg-surface border border-surface-border hover:border-brand-700 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-colors"
+                >
+                  View Dashboard
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Footer ── */}
+      <footer className="border-t border-surface-border py-10 px-6">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded bg-gradient-to-br from-brand-500 to-purple-500 flex items-center justify-center">
+              <Video className="w-3 h-3 text-white" />
+            </div>
+            <span className="font-semibold">AI ReelForge</span>
+          </div>
+          <p className="text-gray-500 text-sm">&copy; {new Date().getFullYear()} AI ReelForge. All rights reserved.</p>
+          <div className="flex gap-6 text-sm text-gray-500">
+            <a href="#" className="hover:text-white transition-colors">Privacy</a>
+            <a href="#" className="hover:text-white transition-colors">Terms</a>
+            <a href="#" className="hover:text-white transition-colors">Contact</a>
+          </div>
+        </div>
+      </footer>
+    </div>
+  )
+}
