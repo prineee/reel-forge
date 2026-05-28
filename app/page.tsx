@@ -350,10 +350,12 @@ export default function HomePage() {
             <span className="font-semibold">AI ReelForge</span>
           </div>
           <p className="text-gray-500 text-sm">&copy; {new Date().getFullYear()} AI ReelForge. All rights reserved.</p>
-          <div className="flex gap-6 text-sm text-gray-500">
-            <a href="#" className="hover:text-white transition-colors">Privacy</a>
-            <a href="#" className="hover:text-white transition-colors">Terms</a>
-            <a href="#" className="hover:text-white transition-colors">Contact</a>
+          <div className="flex flex-wrap justify-center gap-5 text-sm text-gray-500">
+            <Link href="/terms"        className="hover:text-white transition-colors">Terms</Link>
+            <Link href="/privacy"      className="hover:text-white transition-colors">Privacy</Link>
+            <Link href="/refund"       className="hover:text-white transition-colors">Refund</Link>
+            <Link href="/cancellation" className="hover:text-white transition-colors">Cancellation</Link>
+            <a href="mailto:support@reelforge.com" className="hover:text-white transition-colors">Contact</a>
           </div>
         </div>
       </footer>
