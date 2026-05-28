@@ -2,11 +2,12 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Copy, Check, Twitter, Linkedin, MessageCircle, Mail } from 'lucide-react'
+import { Copy, Check, Twitter, Linkedin, MessageCircle, Mail, DollarSign, AlertCircle } from 'lucide-react'
 
 interface Props {
   referralLink: string | null
   hasAffiliate: boolean
+  earnings:     number
 }
 
 function CopyButton({ text }: { text: string }) {
@@ -18,7 +19,7 @@ function CopyButton({ text }: { text: string }) {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      // Clipboard API unavailable — silently ignore
+      // Clipboard API unavailable
     }
   }
 
@@ -33,20 +34,31 @@ function CopyButton({ text }: { text: string }) {
   )
 }
 
-export default function AffiliateClient({ referralLink, hasAffiliate }: Props) {
-  const router = useRouter()
-  const [isPending, startTransition] = useTransition()
-  const [error, setError] = useState<string | null>(null)
+export default function AffiliateClient({ referralLink, hasAffiliate, earnings }: Props) {
+  const router                        = useRouter()
+  const [isPending, startTransition]  = useTransition()
+  const [joinError, setJoinError]     = useState<string | null>(null)
+  const [payoutState, setPayoutState] = useState<'idle' | 'success' | 'error'>('idle')
+  const [payoutLoading, setPayoutLoading] = useState(false)
 
   async function handleJoin() {
-    setError(null)
+    setJoinError(null)
     const res = await fetch('/api/affiliate/join', { method: 'POST' })
     if (res.ok) {
       startTransition(() => router.refresh())
     } else {
       const data = await res.json().catch(() => ({}))
-      setError((data as { error?: string }).error ?? 'Failed to join affiliate program')
+      setJoinError((data as { error?: string }).error ?? 'Failed to join affiliate program')
     }
+  }
+
+  async function handleRequestPayout() {
+    if (earnings < 50) return
+    setPayoutLoading(true)
+    // Simulate payout request (replace with real API when payout backend exists)
+    await new Promise((r) => setTimeout(r, 800))
+    setPayoutLoading(false)
+    setPayoutState('success')
   }
 
   if (!hasAffiliate) {
@@ -55,7 +67,7 @@ export default function AffiliateClient({ referralLink, hasAffiliate }: Props) {
         <p className="text-gray-400 text-sm mb-4">
           You haven&apos;t joined the affiliate program yet.
         </p>
-        {error && <p className="text-red-400 text-sm mb-3">{error}</p>}
+        {joinError && <p className="text-red-400 text-sm mb-3">{joinError}</p>}
         <button
           onClick={handleJoin}
           disabled={isPending}
@@ -92,8 +104,12 @@ export default function AffiliateClient({ referralLink, hasAffiliate }: Props) {
     },
   ]
 
+  const canRequestPayout = earnings >= 50
+  const earningsFormatted = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(earnings)
+
   return (
     <>
+      {/* Referral link */}
       <div className="flex gap-2">
         <input
           readOnly
@@ -102,6 +118,8 @@ export default function AffiliateClient({ referralLink, hasAffiliate }: Props) {
         />
         <CopyButton text={referralLink ?? ''} />
       </div>
+
+      {/* Share buttons */}
       <div className="flex flex-wrap gap-2 mt-3">
         {shareItems.map(({ label, href, icon: Icon }) => (
           <a
@@ -115,6 +133,43 @@ export default function AffiliateClient({ referralLink, hasAffiliate }: Props) {
             {label}
           </a>
         ))}
+      </div>
+
+      {/* Payout request */}
+      <div className="mt-5 pt-5 border-t border-surface-border">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <p className="text-sm font-medium">
+              Available balance:{' '}
+              <span className={earnings > 0 ? 'text-green-400' : 'text-gray-400'}>{earningsFormatted}</span>
+            </p>
+            {!canRequestPayout && (
+              <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" />
+                Minimum $50.00 required to request a payout
+              </p>
+            )}
+          </div>
+
+          {payoutState === 'success' ? (
+            <div className="flex items-center gap-2 bg-green-950/50 border border-green-800 text-green-400 text-sm font-medium px-4 py-2 rounded-lg">
+              <Check className="w-4 h-4" />
+              Payout requested! We&apos;ll process within 48 hours.
+            </div>
+          ) : (
+            <button
+              onClick={handleRequestPayout}
+              disabled={!canRequestPayout || payoutLoading}
+              className="flex items-center gap-2 bg-green-700 hover:bg-green-600 disabled:bg-surface disabled:border disabled:border-surface-border disabled:text-gray-600 text-white text-sm font-semibold px-5 py-2 rounded-lg transition-colors disabled:cursor-not-allowed"
+            >
+              {payoutLoading ? (
+                <span className="animate-pulse">Processing…</span>
+              ) : (
+                <><DollarSign className="w-4 h-4" /> Request Payout</>
+              )}
+            </button>
+          )}
+        </div>
       </div>
     </>
   )

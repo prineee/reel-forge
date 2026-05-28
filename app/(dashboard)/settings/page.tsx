@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { User, Bell, Shield, Loader2, Check, Trash2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -8,11 +9,13 @@ import { createClient } from '@/lib/supabase/client'
 
 export default function SettingsPage() {
   const supabase = createClient()
+  const router = useRouter()
   const [tab, setTab] = useState<'profile' | 'notifications' | 'security'>('profile')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -177,8 +180,25 @@ export default function SettingsPage() {
               <p className="text-sm text-gray-400">
                 Permanently delete your account and all associated data. This action cannot be undone.
               </p>
-              <button className="flex items-center gap-2 px-4 py-2 bg-red-950/50 hover:bg-red-950 border border-red-800 text-red-400 hover:text-red-300 rounded-lg text-sm font-medium transition-colors">
-                <Trash2 className="w-4 h-4" /> Delete Account
+              <button
+                disabled={deleting}
+                onClick={async () => {
+                  if (!window.confirm('Permanently delete your account and all data? This cannot be undone.')) return
+                  setDeleting(true)
+                  const res = await fetch('/api/account/delete', { method: 'DELETE' })
+                  if (res.ok) {
+                    await supabase.auth.signOut()
+                    router.push('/')
+                  } else {
+                    alert('Failed to delete account. Please try again or contact support.')
+                    setDeleting(false)
+                  }
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-red-950/50 hover:bg-red-950 border border-red-800 text-red-400 hover:text-red-300 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+              >
+                {deleting
+                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Deleting…</>
+                  : <><Trash2 className="w-4 h-4" /> Delete Account</>}
               </button>
             </CardContent>
           </Card>

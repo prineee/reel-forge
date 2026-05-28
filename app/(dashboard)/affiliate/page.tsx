@@ -99,7 +99,11 @@ export default async function AffiliatePage() {
       <Card>
         <CardHeader><CardTitle>Your Referral Link</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          <AffiliateClient referralLink={referralLink} hasAffiliate={!!affiliate} />
+          <AffiliateClient
+            referralLink={referralLink}
+            hasAffiliate={!!affiliate}
+            earnings={affiliate?.earnings ?? 0}
+          />
         </CardContent>
       </Card>
 
