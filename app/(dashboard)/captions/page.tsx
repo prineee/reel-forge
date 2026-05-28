@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
   MessageSquare, Sparkles, Loader2, Copy, Check,
-  AlertCircle, BookMarked, Clock, Hash,
+  AlertCircle, BookMarked, Clock, Hash, ChevronDown,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -17,10 +17,15 @@ const NICHES = [
   'Fashion & Style', 'Entertainment', 'Motivational', 'Gaming',
 ]
 
-const TONES = [
-  'Inspirational', 'Funny & Playful', 'Educational', 'Urgent & FOMO',
-  'Casual & Relatable', 'Professional', 'Storytelling', 'Bold & Controversial',
-]
+const TONES = ['Funny', 'Professional', 'Inspiring', 'Viral'] as const
+type Tone = typeof TONES[number]
+
+const TONE_DESCRIPTIONS: Record<Tone, string> = {
+  Funny:        'Witty, humorous — uses jokes and relatable moments',
+  Professional: 'Polished, authoritative — positions you as an expert',
+  Inspiring:    'Emotional, motivational — moves people to take action',
+  Viral:        'FOMO-driven, edgy — designed for maximum shares',
+}
 
 interface CaptionResult {
   hookLine: string
@@ -34,7 +39,7 @@ interface HistoryItem {
   created_at: string
 }
 
-function CopyButton({ text, size = 'sm' }: { text: string; size?: 'sm' | 'md' }) {
+function CopyButton({ text, label = 'Copy' }: { text: string; label?: string }) {
   const [copied, setCopied] = useState(false)
   async function handleCopy() {
     await navigator.clipboard.writeText(text)
@@ -44,10 +49,10 @@ function CopyButton({ text, size = 'sm' }: { text: string; size?: 'sm' | 'md' })
   return (
     <button
       onClick={handleCopy}
-      className={`flex items-center gap-1 ${size === 'sm' ? 'text-xs px-2 py-1' : 'text-sm px-3 py-1.5'} text-gray-400 hover:text-white rounded hover:bg-surface-hover transition-colors`}
+      className="flex items-center gap-1 text-xs text-gray-400 hover:text-white px-2 py-1 rounded hover:bg-surface-hover transition-colors"
     >
       {copied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
-      {copied ? 'Copied' : 'Copy'}
+      {copied ? 'Copied!' : label}
     </button>
   )
 }
@@ -55,32 +60,32 @@ function CopyButton({ text, size = 'sm' }: { text: string; size?: 'sm' | 'md' })
 export default function CaptionsPage() {
   const supabase = createClient()
 
-  const [topic, setTopic] = useState('')
-  const [niche, setNiche] = useState(NICHES[0])
-  const [tone, setTone] = useState(TONES[0])
+  const [topic, setTopic]   = useState('')
+  const [niche, setNiche]   = useState(NICHES[0])
+  const [tone, setTone]     = useState<Tone>('Viral')
 
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [result, setResult] = useState<CaptionResult | null>(null)
+  const [loading, setLoading]     = useState(false)
+  const [error, setError]         = useState('')
+  const [result, setResult]       = useState<CaptionResult | null>(null)
 
-  const [saving, setSaving] = useState(false)
+  const [saving, setSaving]       = useState(false)
   const [saveError, setSaveError] = useState('')
-  const [savedId, setSavedId] = useState<string | null>(null)
+  const [savedId, setSavedId]     = useState<string | null>(null)
 
-  const [history, setHistory] = useState<HistoryItem[]>([])
+  const [history, setHistory]               = useState<HistoryItem[]>([])
   const [historyLoading, setHistoryLoading] = useState(true)
 
   const loadHistory = useCallback(async () => {
     setHistoryLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-    const { data } = await supabase
-      .from('projects')
+    if (!user) { setHistoryLoading(false); return }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data } = await (supabase.from('projects') as any)
       .select('id, title, created_at')
       .eq('user_id', user.id)
       .eq('type', 'short')
       .order('created_at', { ascending: false })
-      .limit(5)
+      .limit(5) as { data: HistoryItem[] | null }
     if (data) setHistory(data)
     setHistoryLoading(false)
   }, [supabase])
@@ -125,7 +130,6 @@ export default function CaptionsPage() {
       return
     }
 
-    // Insert project
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: project, error: projectErr } = await (supabase.from('projects') as any)
       .insert({ user_id: user.id, title: topic, type: 'short', status: 'completed' })
@@ -138,13 +142,10 @@ export default function CaptionsPage() {
       return
     }
 
-    // Store the generated caption as script JSON in the videos table
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error: videoErr } = await (supabase.from('videos') as any)
-      .insert({
-        project_id: project.id,
-        script: JSON.stringify(result),
-      }) as { error: { message: string } | null }
+      .insert({ project_id: project.id, script: JSON.stringify(result) }) as
+      { error: { message: string } | null }
 
     if (videoErr) {
       setSaveError(videoErr.message)
@@ -166,7 +167,7 @@ export default function CaptionsPage() {
       <div>
         <h1 className="text-2xl font-bold mb-1">Caption Generator</h1>
         <p className="text-gray-400 text-sm">
-          Generate viral captions, hooks, and hashtags with GPT-4.
+          Generate viral captions, hooks, and hashtags with GPT-4o.
         </p>
       </div>
 
@@ -175,7 +176,8 @@ export default function CaptionsPage() {
         <Card>
           <CardHeader><CardTitle>What&apos;s your post about?</CardTitle></CardHeader>
           <CardContent>
-            <form onSubmit={handleGenerate} className="space-y-4">
+            <form onSubmit={handleGenerate} className="space-y-5">
+              {/* Topic */}
               <div>
                 <label className="label">Topic</label>
                 <input
@@ -187,6 +189,7 @@ export default function CaptionsPage() {
                 />
               </div>
 
+              {/* Niche – tag pills */}
               <div>
                 <label className="label">Niche</label>
                 <div className="flex flex-wrap gap-1.5">
@@ -207,24 +210,22 @@ export default function CaptionsPage() {
                 </div>
               </div>
 
+              {/* Tone – dropdown */}
               <div>
                 <label className="label">Tone</label>
-                <div className="flex flex-wrap gap-1.5">
-                  {TONES.map((t) => (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => setTone(t)}
-                      className={`px-2.5 py-1 rounded-md text-xs font-medium border transition-colors ${
-                        tone === t
-                          ? 'bg-purple-700 border-purple-600 text-white'
-                          : 'border-surface-border text-gray-400 hover:border-purple-700 hover:text-white'
-                      }`}
-                    >
-                      {t}
-                    </button>
-                  ))}
+                <div className="relative">
+                  <select
+                    className="input appearance-none pr-9 cursor-pointer"
+                    value={tone}
+                    onChange={(e) => setTone(e.target.value as Tone)}
+                  >
+                    {TONES.map((t) => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
                 </div>
+                <p className="text-xs text-gray-500 mt-1.5">{TONE_DESCRIPTIONS[tone]}</p>
               </div>
 
               {error && (
@@ -249,7 +250,8 @@ export default function CaptionsPage() {
             <Card>
               <CardContent className="flex flex-col items-center py-14 gap-3">
                 <Loader2 className="w-9 h-9 text-brand-400 animate-spin" />
-                <p className="text-sm text-gray-400">GPT-4 is writing your caption…</p>
+                <p className="text-sm text-gray-400">GPT-4o is writing your caption…</p>
+                <p className="text-xs text-gray-600">Usually takes 5–10 seconds</p>
               </CardContent>
             </Card>
           )}
@@ -315,8 +317,8 @@ export default function CaptionsPage() {
                 </CardContent>
               </Card>
 
-              {/* Save / copy all */}
-              <div className="flex items-center gap-3">
+              {/* Actions */}
+              <div className="flex items-center gap-3 flex-wrap">
                 <Button
                   onClick={handleSave}
                   disabled={saving || !!savedId}
@@ -329,7 +331,7 @@ export default function CaptionsPage() {
                     ? <><Check className="w-4 h-4 text-green-400" /> Saved to Projects</>
                     : <><BookMarked className="w-4 h-4" /> Save to Projects</>}
                 </Button>
-                <CopyButton text={fullText} size="md" />
+                <CopyButton text={fullText} label="Copy All" />
                 {saveError && (
                   <p className="text-xs text-red-400 flex items-center gap-1">
                     <AlertCircle className="w-3.5 h-3.5" /> {saveError}
@@ -364,7 +366,7 @@ export default function CaptionsPage() {
                     <p className="text-sm font-medium">{item.title}</p>
                     <p className="text-xs text-gray-500">{formatDate(item.created_at)}</p>
                   </div>
-                  <Badge variant="info">short</Badge>
+                  <Badge variant="info">caption</Badge>
                 </div>
               ))}
             </div>

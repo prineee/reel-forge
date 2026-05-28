@@ -14,14 +14,21 @@ export interface ScriptResult {
   scenes: Scene[]
 }
 
+const PLATFORM_CONTEXT: Record<string, string> = {
+  Reels:  'Instagram Reels — vertical 9:16, music-friendly, fast cuts, hooks in first 1 second',
+  Shorts: 'YouTube Shorts — slightly more educational, end with subscribe CTA, 16–60 seconds',
+  TikTok: 'TikTok — trend-aware, conversational, duet-friendly, strong pattern interrupt opener',
+}
+
 export async function POST(request: Request) {
   const check = await requireCredits('script')
   if (!check.ok) return check.response
 
   const body = await request.json()
-  const { productName, targetAudience } = body as {
+  const { productName, targetAudience, platform } = body as {
     productName?: string
     targetAudience?: string
+    platform?: string
   }
 
   if (!productName?.trim() || !targetAudience?.trim()) {
@@ -33,18 +40,28 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'OpenAI API key not configured on the server' }, { status: 500 })
   }
 
-  const prompt = `You are an expert short-form video script writer specializing in viral 60-second reels.
+  const platformName = platform ?? 'Reels'
+  const platformGuide = PLATFORM_CONTEXT[platformName] ?? platformName
 
-Product: ${productName}
+  const prompt = `You are an expert short-form video script writer specialising in viral 60-second ${platformName} content.
+
+Platform: ${platformName} — ${platformGuide}
+Product / Topic: ${productName}
 Target Audience: ${targetAudience}
 
-Write a complete 60-second reel script split into exactly 5 scenes (~12 seconds each).
-Each scene has a distinct storytelling purpose:
-- Scene 1 (0:00–0:12): HOOK — grab attention in the first 3 seconds, create instant curiosity
-- Scene 2 (0:12–0:24): PROBLEM — agitate the pain point the target audience feels
-- Scene 3 (0:24–0:36): SOLUTION — introduce the product as the natural answer
-- Scene 4 (0:36–0:48): PROOF — one compelling benefit, stat, or testimonial snippet
-- Scene 5 (0:48–1:00): CTA — urgent, specific call-to-action
+Write a complete 60-second script split into exactly 5 scenes (~12 seconds each).
+Each scene has a fixed storytelling role:
+- Scene 1 (0:00–0:12): HOOK — grab attention in the first 2 words, create instant curiosity
+- Scene 2 (0:12–0:24): PROBLEM — agitate the specific pain the audience feels every day
+- Scene 3 (0:24–0:36): SOLUTION — introduce the product/idea as the natural answer
+- Scene 4 (0:36–0:48): PROOF — one compelling stat, testimonial snippet, or before/after
+- Scene 5 (0:48–1:00): CTA — urgent, specific call-to-action optimised for ${platformName}
+
+Rules:
+- voiceover should sound natural when spoken aloud — no bullet points
+- visualNote is a crisp director's note: what's on screen, camera angle, b-roll type
+- title must be catchy and under 8 words
+- Optimise pacing and language specifically for ${platformName}
 
 Respond ONLY with valid JSON and nothing else:
 {
@@ -69,10 +86,17 @@ Respond ONLY with valid JSON and nothing else:
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4',
-        messages: [{ role: 'user', content: prompt }],
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a short-form video script writer. Always respond with valid JSON only — no markdown, no commentary.',
+          },
+          { role: 'user', content: prompt },
+        ],
         temperature: 0.75,
-        max_tokens: 1200,
+        max_tokens: 1400,
+        response_format: { type: 'json_object' },
       }),
     })
   } catch {
@@ -92,6 +116,9 @@ Respond ONLY with valid JSON and nothing else:
 
   try {
     const result = JSON.parse(jsonStr) as ScriptResult
+    if (!result.title || !Array.isArray(result.scenes) || result.scenes.length === 0) {
+      throw new Error('Incomplete response')
+    }
     return NextResponse.json(result)
   } catch {
     return NextResponse.json(
