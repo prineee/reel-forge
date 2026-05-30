@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   Video, Sparkles, Loader2, ChevronRight, ChevronLeft,
   Mic, Eye, Play, Pause, Check, AlertCircle,
-  Volume2, Download, RefreshCw, BookMarked,
+  Volume2, Download, RefreshCw, BookMarked, Info,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -29,6 +29,7 @@ interface ReelScript {
 interface Voice {
   voice_id: string
   name: string
+  language: string
   category: string
   preview_url: string
   gender: string
@@ -41,6 +42,7 @@ interface GenerateResult {
   voiceUrl: string
   projectId: string
   videoId: string
+  usedFallbackAudio?: boolean
 }
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -73,10 +75,10 @@ function StepIndicator({ current }: { current: number }) {
   return (
     <div className="flex items-center gap-0">
       {STEPS.map((label, i) => {
-        const idx       = i + 1
-        const done      = current > idx
-        const active    = current === idx
-        const isLast    = i === STEPS.length - 1
+        const idx    = i + 1
+        const done   = current > idx
+        const active = current === idx
+        const isLast = i === STEPS.length - 1
         return (
           <div key={label} className="flex items-center">
             <div className="flex items-center gap-2">
@@ -119,12 +121,11 @@ function SceneCard({
   index: number
   onChange: (voiceover: string) => void
 }) {
-  const label    = SCENE_LABELS[index]  ?? `SCENE ${scene.number}`
-  const gradient = SCENE_COLORS[index]  ?? SCENE_COLORS[0]
+  const label    = SCENE_LABELS[index] ?? `SCENE ${scene.number}`
+  const gradient = SCENE_COLORS[index] ?? SCENE_COLORS[0]
 
   return (
     <Card>
-      {/* Header */}
       <div className="flex items-center gap-3 px-5 py-3 border-b border-surface-border">
         <div className={cn('w-8 h-8 rounded-lg bg-gradient-to-br flex items-center justify-center text-white text-xs font-extrabold shrink-0', gradient)}>
           {scene.number}
@@ -144,7 +145,6 @@ function SceneCard({
       </div>
 
       <div className="divide-y divide-surface-border">
-        {/* Editable voiceover */}
         <div className="px-5 py-4">
           <div className="flex items-center gap-1.5 text-xs font-medium text-gray-400 mb-2">
             <Mic className="w-3.5 h-3.5" /> Voiceover <span className="text-gray-600">(editable)</span>
@@ -155,8 +155,6 @@ function SceneCard({
             onChange={(e) => onChange(e.target.value)}
           />
         </div>
-
-        {/* Read-only visual note */}
         <div className="px-5 py-3 bg-surface/40 rounded-b-xl">
           <div className="flex items-center gap-1.5 text-xs font-medium text-gray-500 mb-1.5">
             <Eye className="w-3.5 h-3.5" /> Visual Direction
@@ -192,7 +190,6 @@ function VoiceCard({
       )}
     >
       <div className="flex items-start gap-3">
-        {/* Avatar */}
         <div className={cn(
           'w-10 h-10 rounded-full flex items-center justify-center text-base font-bold shrink-0',
           isFemale ? 'bg-purple-950 text-purple-300' : 'bg-blue-950 text-blue-300'
@@ -202,7 +199,7 @@ function VoiceCard({
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2 mb-1">
-            <span className="font-semibold text-sm text-white">{voice.name}</span>
+            <span className="font-semibold text-sm text-white leading-tight">{voice.name}</span>
             {selected && <Check className="w-4 h-4 text-brand-400 shrink-0" />}
           </div>
 
@@ -218,13 +215,15 @@ function VoiceCard({
             {voice.accent && (
               <Badge variant="default" className="text-xs capitalize">{voice.accent}</Badge>
             )}
+            {voice.language && voice.language !== 'English' && (
+              <Badge variant="default" className="text-xs">{voice.language}</Badge>
+            )}
           </div>
 
           {voice.description && (
             <p className="text-xs text-gray-500 capitalize mb-2">{voice.description}</p>
           )}
 
-          {/* Preview button */}
           {voice.preview_url && (
             <button
               onClick={(e) => { e.stopPropagation(); onTogglePreview() }}
@@ -253,19 +252,20 @@ export default function CreateReelPage() {
   const [step, setStep] = useState(1)
 
   // ── Step 1: Setup ──
-  const [topic, setTopic]       = useState('')
-  const [niche, setNiche]       = useState<string>(NICHES[0])
-  const [platform, setPlatform] = useState<Platform>('Reels')
+  const [topic, setTopic]             = useState('')
+  const [niche, setNiche]             = useState<string>(NICHES[0])
+  const [platform, setPlatform]       = useState<Platform>('Reels')
   const [step1Loading, setStep1Loading] = useState(false)
-  const [step1Error, setStep1Error]     = useState('')
+  const [step1Error, setStep1Error]   = useState('')
 
   // ── Step 2: Script ──
   const [scriptTitle, setScriptTitle] = useState('')
   const [scenes, setScenes]           = useState<Scene[]>([])
 
   // ── Step 3: Voices ──
-  const [voices, setVoices]             = useState<Voice[]>([])
-  const [voicesLoading, setVoicesLoading] = useState(false)
+  const [voices, setVoices]                   = useState<Voice[]>([])
+  const [voicesLoading, setVoicesLoading]     = useState(false)
+  const [voicesError, setVoicesError]         = useState('')
   const [selectedVoiceId, setSelectedVoiceId] = useState('')
   const [previewPlaying, setPreviewPlaying]   = useState('')
   const previewRef = useRef<HTMLAudioElement | null>(null)
@@ -276,58 +276,78 @@ export default function CreateReelPage() {
   const [generateError, setGenerateError] = useState('')
   const [result, setResult]               = useState<GenerateResult | null>(null)
 
-  // ── Cleanup preview audio on unmount ──
+  // Cleanup preview audio on unmount
   useEffect(() => {
     return () => { previewRef.current?.pause() }
   }, [])
 
-  // ── Asymptotic progress animation during generation ──
+  // Asymptotic progress animation while generating
   useEffect(() => {
     if (!generating) return
     const tick = setInterval(() => {
-      setProgress((p) => p >= 90 ? p : p + (90 - p) * 0.06)
+      setProgress((p) => (p >= 90 ? p : p + (90 - p) * 0.06))
     }, 400)
     return () => clearInterval(tick)
   }, [generating])
 
-  // ── Step 1 → 2: Generate script ──
+  // ── Step 1 → 2: Generate script ──────────────────────────────────────────
   async function handleGenerateScript() {
     if (!topic.trim()) return
     setStep1Loading(true)
     setStep1Error('')
 
-    const res  = await fetch('/api/reel/script', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ topic, niche, platform }),
-    })
-    const json = await res.json()
+    try {
+      const res  = await fetch('/api/reel/script', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ topic, niche, platform }),
+      })
+      const json = await res.json()
 
-    if (!res.ok) {
-      setStep1Error(json.error ?? 'Failed to generate script.')
+      if (!res.ok) {
+        setStep1Error(json.error ?? 'Failed to generate script. Please try again.')
+        return
+      }
+
+      setScriptTitle((json as ReelScript).title)
+      setScenes((json as ReelScript).scenes)
+      setStep(2)
+    } catch {
+      setStep1Error('Network error. Please check your connection and try again.')
+    } finally {
       setStep1Loading(false)
-      return
     }
-
-    setScriptTitle((json as ReelScript).title)
-    setScenes((json as ReelScript).scenes)
-    setStep1Loading(false)
-    setStep(2)
   }
 
-  // ── Step 2 → 3: Load voices ──
+  // ── Step 2 → 3: Load voices ───────────────────────────────────────────────
   const loadVoices = useCallback(async () => {
-    if (voices.length > 0) return   // already loaded
+    if (voices.length > 0) return  // already loaded
     setVoicesLoading(true)
+    setVoicesError('')
+
     try {
-      const res  = await fetch('/api/reel/voices')
+      const res = await fetch('/api/reel/voices')
+
+      if (!res.ok) {
+        // Surface the actual error (e.g. 401 Unauthorized, 500 server error)
+        const data = await res.json().catch(() => ({})) as { error?: string }
+        setVoicesError(data.error ?? `Failed to load voices (HTTP ${res.status})`)
+        setVoices([])
+        return
+      }
+
       const data = await res.json() as { voices: Voice[] }
       const list = data.voices ?? []
-      setVoices(list)
-      if (list.length > 0 && !selectedVoiceId) {
-        setSelectedVoiceId(list[0].voice_id)
+
+      if (list.length === 0) {
+        setVoicesError('No voices returned. Check ELEVENLABS_API_KEY in your environment.')
+        return
       }
-    } catch {
+
+      setVoices(list)
+      if (!selectedVoiceId) setSelectedVoiceId(list[0].voice_id)
+    } catch (err) {
+      setVoicesError(`Network error loading voices: ${err instanceof Error ? err.message : String(err)}`)
       setVoices([])
     } finally {
       setVoicesLoading(false)
@@ -339,7 +359,7 @@ export default function CreateReelPage() {
     loadVoices()
   }
 
-  // ── Voice preview ──
+  // ── Voice preview ─────────────────────────────────────────────────────────
   function togglePreview(voice: Voice) {
     if (!voice.preview_url) return
 
@@ -360,31 +380,44 @@ export default function CreateReelPage() {
     audio.onended = () => setPreviewPlaying('')
   }
 
-  // ── Step 3 → 4: Generate voiceover ──
+  // ── Step 3 → 4: Generate voiceover ───────────────────────────────────────
+  // FIX: setStep(4) is called FIRST so the loading spinner appears immediately.
+  // Previously it was called only after a successful response, making the UI
+  // appear frozen for the entire ElevenLabs TTS duration (30–60 s).
   async function handleGenerate() {
     if (!selectedVoiceId || !scenes.length) return
+
     setGenerating(true)
     setProgress(0)
     setGenerateError('')
     setResult(null)
+    setStep(4)  // ← show loading card immediately before the fetch
 
-    const res  = await fetch('/api/reel/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ scenes, voice_id: selectedVoiceId, title: scriptTitle }),
-    })
-    const json = await res.json()
+    try {
+      const res = await fetch('/api/reel/generate', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ scenes, voice_id: selectedVoiceId, title: scriptTitle }),
+      })
 
-    if (!res.ok) {
-      setGenerateError(json.error ?? 'Generation failed. Please try again.')
+      const json = await res.json()
+
+      if (!res.ok) {
+        setGenerateError(json.error ?? 'Generation failed. Please try again.')
+        return
+      }
+
+      setProgress(100)
+      setResult(json as GenerateResult)
+    } catch (err) {
+      setGenerateError(
+        err instanceof Error
+          ? `Network error: ${err.message}`
+          : 'Network error. Please check your connection and try again.'
+      )
+    } finally {
       setGenerating(false)
-      return
     }
-
-    setProgress(100)
-    setResult(json as GenerateResult)
-    setGenerating(false)
-    setStep(4)
   }
 
   function handleReset() {
@@ -400,7 +433,7 @@ export default function CreateReelPage() {
   }
 
   function updateSceneVoiceover(index: number, voiceover: string) {
-    setScenes((prev) => prev.map((s, i) => i === index ? { ...s, voiceover } : s))
+    setScenes((prev) => prev.map((s, i) => (i === index ? { ...s, voiceover } : s)))
   }
 
   const selectedVoice = voices.find((v) => v.voice_id === selectedVoiceId)
@@ -419,12 +452,11 @@ export default function CreateReelPage() {
       {/* Step indicator */}
       <StepIndicator current={step} />
 
-      {/* ── Step 1: Topic & Niche ───────────────────────────────────────── */}
+      {/* ── Step 1: Topic & Niche ─────────────────────────────────────────── */}
       {step === 1 && (
         <Card>
           <CardHeader><CardTitle>Step 1 — Topic & Niche</CardTitle></CardHeader>
           <CardContent className="space-y-5">
-            {/* Topic */}
             <div>
               <label className="label">What is your reel about?</label>
               <input
@@ -436,7 +468,6 @@ export default function CreateReelPage() {
               />
             </div>
 
-            {/* Niche */}
             <div>
               <label className="label">Niche</label>
               <div className="flex flex-wrap gap-1.5">
@@ -457,7 +488,6 @@ export default function CreateReelPage() {
               </div>
             </div>
 
-            {/* Platform */}
             <div>
               <label className="label">Platform</label>
               <div className="flex gap-2">
@@ -480,7 +510,8 @@ export default function CreateReelPage() {
 
             {step1Error && (
               <div className="flex items-start gap-2 bg-red-950/50 border border-red-800 text-red-400 text-sm rounded-lg p-3">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" /> {step1Error}
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{step1Error}</span>
               </div>
             )}
 
@@ -498,12 +529,14 @@ export default function CreateReelPage() {
         </Card>
       )}
 
-      {/* ── Step 2: Review Script ───────────────────────────────────────── */}
+      {/* ── Step 2: Review Script ─────────────────────────────────────────── */}
       {step === 2 && (
         <div className="space-y-4">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-xs text-gray-500 mb-0.5">Generated script for <span className="text-white">{platform}</span></p>
+              <p className="text-xs text-gray-500 mb-0.5">
+                Generated script for <span className="text-white">{platform}</span>
+              </p>
               <h2 className="text-lg font-bold">{scriptTitle}</h2>
             </div>
             <button
@@ -539,7 +572,7 @@ export default function CreateReelPage() {
         </div>
       )}
 
-      {/* ── Step 3: Choose Voice ────────────────────────────────────────── */}
+      {/* ── Step 3: Choose Voice ──────────────────────────────────────────── */}
       {step === 3 && (
         <div className="space-y-5">
           <div>
@@ -549,19 +582,38 @@ export default function CreateReelPage() {
             </p>
           </div>
 
-          {voicesLoading ? (
+          {/* Loading skeletons */}
+          {voicesLoading && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {[...Array(6)].map((_, i) => (
+              {[...Array(3)].map((_, i) => (
                 <div key={i} className="h-28 bg-surface-card border border-surface-border rounded-xl animate-pulse" />
               ))}
             </div>
-          ) : voices.length === 0 ? (
+          )}
+
+          {/* Voices error */}
+          {!voicesLoading && voicesError && (
             <Card>
-              <CardContent className="py-8 text-center">
-                <p className="text-sm text-gray-400">Could not load voices. Check ELEVENLABS_API_KEY.</p>
+              <CardContent className="py-8 space-y-3">
+                <div className="flex items-start gap-2 text-red-400">
+                  <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold">Could not load voices</p>
+                    <p className="text-xs text-red-400/80 mt-0.5">{voicesError}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => { setVoices([]); loadVoices() }}
+                  className="flex items-center gap-1.5 text-xs text-brand-400 hover:text-brand-300 transition-colors"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" /> Retry
+                </button>
               </CardContent>
             </Card>
-          ) : (
+          )}
+
+          {/* Voice grid */}
+          {!voicesLoading && !voicesError && voices.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {voices.map((voice) => (
                 <VoiceCard
@@ -576,11 +628,16 @@ export default function CreateReelPage() {
             </div>
           )}
 
+          {/* Selected voice pill */}
           {selectedVoice && (
             <div className="flex items-center gap-2 text-sm text-gray-400 bg-surface-card border border-surface-border rounded-lg px-4 py-3">
               <Check className="w-4 h-4 text-brand-400" />
               Selected: <span className="text-white font-medium">{selectedVoice.name}</span>
-              <span className="text-gray-600 capitalize">({selectedVoice.accent} {selectedVoice.gender})</span>
+              {(selectedVoice.accent || selectedVoice.gender) && (
+                <span className="text-gray-600 capitalize">
+                  ({[selectedVoice.accent, selectedVoice.gender].filter(Boolean).join(' ')})
+                </span>
+              )}
             </div>
           )}
 
@@ -590,22 +647,27 @@ export default function CreateReelPage() {
             </Button>
 
             <div className="flex items-center gap-3">
-              <p className="text-xs text-gray-500">Uses <span className="text-white font-semibold">5 credits</span></p>
+              <p className="text-xs text-gray-500">
+                Uses <span className="text-white font-semibold">5 credits</span>
+              </p>
               <Button
                 onClick={handleGenerate}
-                disabled={!selectedVoiceId || voicesLoading}
+                disabled={!selectedVoiceId || voicesLoading || generating}
               >
-                <Volume2 className="w-4 h-4" /> Generate Voiceover
+                {generating
+                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating voiceover…</>
+                  : <><Volume2 className="w-4 h-4" /> Generate Voiceover</>}
               </Button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── Step 4: Processing / Result ─────────────────────────────────── */}
+      {/* ── Step 4: Processing / Result ───────────────────────────────────── */}
       {step === 4 && (
         <div className="space-y-5">
-          {/* Generating state */}
+
+          {/* ── Loading ── */}
           {generating && (
             <Card>
               <CardContent className="flex flex-col items-center py-16 gap-5">
@@ -614,8 +676,10 @@ export default function CreateReelPage() {
                   <Volume2 className="absolute inset-0 m-auto w-7 h-7 text-brand-300" />
                 </div>
                 <div className="text-center space-y-1">
-                  <p className="text-base font-semibold">Generating your voiceover…</p>
-                  <p className="text-xs text-gray-500">ElevenLabs TTS → Cloudinary upload → saving to projects</p>
+                  <p className="text-base font-semibold">Generating voiceover…</p>
+                  <p className="text-xs text-gray-500">
+                    ElevenLabs TTS → Cloudinary upload → saving to projects
+                  </p>
                 </div>
 
                 {/* Progress bar */}
@@ -635,17 +699,22 @@ export default function CreateReelPage() {
             </Card>
           )}
 
-          {/* Error state */}
+          {/* ── Error ── */}
           {!generating && generateError && (
             <Card>
               <CardContent className="py-10 text-center space-y-4">
                 <AlertCircle className="w-10 h-10 text-red-400 mx-auto" />
                 <div>
-                  <p className="font-semibold text-red-400 mb-1">Generation failed</p>
-                  <p className="text-sm text-gray-500 max-w-md mx-auto">{generateError}</p>
+                  <p className="font-semibold text-red-400 mb-2">Generation failed</p>
+                  <p className="text-sm text-gray-400 max-w-md mx-auto bg-red-950/30 border border-red-900 rounded-lg px-4 py-3">
+                    {generateError}
+                  </p>
                 </div>
                 <div className="flex items-center justify-center gap-3">
-                  <Button variant="secondary" onClick={() => setStep(3)}>
+                  <Button
+                    variant="secondary"
+                    onClick={() => { setStep(3); setGenerateError('') }}
+                  >
                     <ChevronLeft className="w-4 h-4" /> Back
                   </Button>
                   <Button onClick={handleGenerate}>
@@ -656,7 +725,7 @@ export default function CreateReelPage() {
             </Card>
           )}
 
-          {/* Success result */}
+          {/* ── Success ── */}
           {!generating && result && (
             <div className="space-y-5">
               {/* Success banner */}
@@ -666,12 +735,21 @@ export default function CreateReelPage() {
                 </div>
                 <div className="flex-1">
                   <p className="font-semibold text-green-300">Voiceover generated!</p>
-                  <p className="text-xs text-green-500/70">
-                    Saved to Projects · 5 credits used
-                  </p>
+                  <p className="text-xs text-green-500/70">Saved to Projects · 5 credits used</p>
                 </div>
                 <Badge variant="success">Complete</Badge>
               </div>
+
+              {/* Quota fallback notice */}
+              {result.usedFallbackAudio && (
+                <div className="flex items-start gap-2 bg-yellow-950/30 border border-yellow-800 rounded-xl px-4 py-3 text-sm text-yellow-300">
+                  <Info className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>
+                    ElevenLabs quota was exceeded — a sample audio file was used so your project
+                    was still saved. Top up your ElevenLabs plan to generate real voiceovers.
+                  </span>
+                </div>
+              )}
 
               {/* Audio player */}
               <Card>
@@ -696,6 +774,8 @@ export default function CreateReelPage() {
                       <a
                         href={result.voiceUrl}
                         download="voiceover.mp3"
+                        target="_blank"
+                        rel="noreferrer"
                         className="inline-flex items-center gap-2 text-xs text-brand-400 hover:text-brand-300 transition-colors"
                       >
                         <Download className="w-3.5 h-3.5" /> Download MP3
@@ -703,7 +783,8 @@ export default function CreateReelPage() {
                     </div>
                   ) : (
                     <p className="text-sm text-yellow-400 bg-yellow-950/30 border border-yellow-800 rounded-lg px-3 py-2">
-                      Audio was generated but could not be saved to Cloudinary. Configure valid Cloudinary credentials to enable audio hosting.
+                      Audio was generated but could not be uploaded. Configure valid Cloudinary
+                      credentials to enable audio hosting.
                     </p>
                   )}
                 </CardContent>
@@ -745,7 +826,7 @@ export default function CreateReelPage() {
                 <Button variant="secondary" onClick={handleReset}>
                   <RefreshCw className="w-4 h-4" /> Create Another
                 </Button>
-                <Button onClick={() => window.location.href = '/projects'}>
+                <Button onClick={() => (window.location.href = '/projects')}>
                   <Video className="w-4 h-4" /> View Projects
                 </Button>
               </div>
