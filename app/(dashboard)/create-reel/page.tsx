@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   Video, Sparkles, Loader2, ChevronRight, ChevronLeft,
-  Mic, Eye, Play, Pause, Check, AlertCircle,
+  Mic, Eye, Check, AlertCircle,
   Volume2, Download, RefreshCw, BookMarked, Info,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -27,19 +27,20 @@ interface ReelScript {
 }
 
 interface Voice {
-  voice_id: string
+  voice_id: string      // OpenAI voice name: alloy | echo | fable | onyx | nova | shimmer
   name: string
+  description: string
+  gender: string        // female | male | neutral
   language: string
   category: string
   preview_url: string
-  gender: string
   accent: string
-  description: string
   age: string
 }
 
 interface GenerateResult {
-  voiceUrl: string
+  voiceUrl: string      // Cloudinary URL, data URL, or fallback — used for playback
+  dataUrl: string       // base64 data URL — used for download
   projectId: string
   videoId: string
   usedFallbackAudio?: boolean
@@ -58,8 +59,8 @@ type Platform = typeof PLATFORMS[number]
 
 const PLATFORM_ICONS: Record<Platform, string> = { Reels: '📱', Shorts: '▶️', TikTok: '🎵' }
 
-const SCENE_LABELS  = ['HOOK', 'PROBLEM', 'SOLUTION', 'PROOF', 'CTA']
-const SCENE_COLORS  = [
+const SCENE_LABELS = ['HOOK', 'PROBLEM', 'SOLUTION', 'PROOF', 'CTA']
+const SCENE_COLORS = [
   'from-red-500 to-orange-500',
   'from-orange-500 to-yellow-500',
   'from-brand-500 to-blue-500',
@@ -82,14 +83,12 @@ function StepIndicator({ current }: { current: number }) {
         return (
           <div key={label} className="flex items-center">
             <div className="flex items-center gap-2">
-              <div
-                className={cn(
-                  'w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all',
-                  done   ? 'bg-brand-600 border-brand-600 text-white' :
-                  active ? 'bg-brand-600/20 border-brand-500 text-brand-300' :
-                           'bg-transparent border-surface-border text-gray-600'
-                )}
-              >
+              <div className={cn(
+                'w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all',
+                done   ? 'bg-brand-600 border-brand-600 text-white' :
+                active ? 'bg-brand-600/20 border-brand-500 text-brand-300' :
+                         'bg-transparent border-surface-border text-gray-600'
+              )}>
                 {done ? <Check className="w-3.5 h-3.5" /> : idx}
               </div>
               <span className={cn(
@@ -127,7 +126,10 @@ function SceneCard({
   return (
     <Card>
       <div className="flex items-center gap-3 px-5 py-3 border-b border-surface-border">
-        <div className={cn('w-8 h-8 rounded-lg bg-gradient-to-br flex items-center justify-center text-white text-xs font-extrabold shrink-0', gradient)}>
+        <div className={cn(
+          'w-8 h-8 rounded-lg bg-gradient-to-br flex items-center justify-center text-white text-xs font-extrabold shrink-0',
+          gradient
+        )}>
           {scene.number}
         </div>
         <div className="flex-1 min-w-0">
@@ -147,7 +149,8 @@ function SceneCard({
       <div className="divide-y divide-surface-border">
         <div className="px-5 py-4">
           <div className="flex items-center gap-1.5 text-xs font-medium text-gray-400 mb-2">
-            <Mic className="w-3.5 h-3.5" /> Voiceover <span className="text-gray-600">(editable)</span>
+            <Mic className="w-3.5 h-3.5" /> Voiceover
+            <span className="text-gray-600">(editable)</span>
           </div>
           <textarea
             className="input min-h-[80px] resize-y text-sm leading-relaxed"
@@ -168,16 +171,21 @@ function SceneCard({
 
 // ── VoiceCard (Step 3) ───────────────────────────────────────────────────────
 
+// Avatar/badge colours by gender
+function voiceColors(gender: string) {
+  if (gender === 'female')  return { avatar: 'bg-purple-950 text-purple-300', badge: 'bg-purple-950 border-purple-800 text-purple-300' }
+  if (gender === 'male')    return { avatar: 'bg-blue-950 text-blue-300',     badge: 'bg-blue-950 border-blue-800 text-blue-300'       }
+  /* neutral */             return { avatar: 'bg-brand-950 text-brand-300',   badge: 'bg-brand-950 border-brand-800 text-brand-300'   }
+}
+
 function VoiceCard({
-  voice, selected, previewPlaying, onSelect, onTogglePreview,
+  voice, selected, onSelect,
 }: {
   voice: Voice
   selected: boolean
-  previewPlaying: boolean
   onSelect: () => void
-  onTogglePreview: () => void
 }) {
-  const isFemale = voice.gender === 'female'
+  const colors = voiceColors(voice.gender)
 
   return (
     <button
@@ -190,55 +198,38 @@ function VoiceCard({
       )}
     >
       <div className="flex items-start gap-3">
+        {/* Avatar */}
         <div className={cn(
           'w-10 h-10 rounded-full flex items-center justify-center text-base font-bold shrink-0',
-          isFemale ? 'bg-purple-950 text-purple-300' : 'bg-blue-950 text-blue-300'
+          colors.avatar
         )}>
           {voice.name.charAt(0)}
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-2 mb-1">
-            <span className="font-semibold text-sm text-white leading-tight">{voice.name}</span>
+          {/* Name + check */}
+          <div className="flex items-center justify-between gap-2 mb-1.5">
+            <span className="font-semibold text-sm text-white">{voice.name}</span>
             {selected && <Check className="w-4 h-4 text-brand-400 shrink-0" />}
           </div>
 
+          {/* Badges */}
           <div className="flex flex-wrap gap-1 mb-2">
-            {voice.gender && (
-              <Badge
-                variant="default"
-                className={cn('text-xs capitalize', isFemale ? 'bg-purple-950 border-purple-800 text-purple-300' : 'bg-blue-950 border-blue-800 text-blue-300')}
-              >
-                {voice.gender}
+            <Badge variant="default" className={cn('text-xs capitalize', colors.badge)}>
+              {voice.gender}
+            </Badge>
+            {voice.accent && (
+              <Badge variant="default" className="text-xs capitalize">
+                {voice.accent}
               </Badge>
             )}
-            {voice.accent && (
-              <Badge variant="default" className="text-xs capitalize">{voice.accent}</Badge>
-            )}
-            {voice.language && voice.language !== 'English' && (
-              <Badge variant="default" className="text-xs">{voice.language}</Badge>
-            )}
+            <Badge variant="default" className="text-xs text-gray-500 bg-surface border-surface-border">
+              OpenAI TTS
+            </Badge>
           </div>
 
-          {voice.description && (
-            <p className="text-xs text-gray-500 capitalize mb-2">{voice.description}</p>
-          )}
-
-          {voice.preview_url && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onTogglePreview() }}
-              className={cn(
-                'flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md border transition-colors',
-                previewPlaying
-                  ? 'bg-brand-600 border-brand-500 text-white'
-                  : 'border-surface-border text-gray-400 hover:border-brand-700 hover:text-white'
-              )}
-            >
-              {previewPlaying
-                ? <><Pause className="w-3 h-3" /> Stop</>
-                : <><Play className="w-3 h-3" /> Preview</>}
-            </button>
-          )}
+          {/* Description */}
+          <p className="text-xs text-gray-500 leading-relaxed">{voice.description}</p>
         </div>
       </div>
     </button>
@@ -252,11 +243,11 @@ export default function CreateReelPage() {
   const [step, setStep] = useState(1)
 
   // ── Step 1: Setup ──
-  const [topic, setTopic]             = useState('')
-  const [niche, setNiche]             = useState<string>(NICHES[0])
-  const [platform, setPlatform]       = useState<Platform>('Reels')
+  const [topic, setTopic]               = useState('')
+  const [niche, setNiche]               = useState<string>(NICHES[0])
+  const [platform, setPlatform]         = useState<Platform>('Reels')
   const [step1Loading, setStep1Loading] = useState(false)
-  const [step1Error, setStep1Error]   = useState('')
+  const [step1Error, setStep1Error]     = useState('')
 
   // ── Step 2: Script ──
   const [scriptTitle, setScriptTitle] = useState('')
@@ -266,8 +257,7 @@ export default function CreateReelPage() {
   const [voices, setVoices]                   = useState<Voice[]>([])
   const [voicesLoading, setVoicesLoading]     = useState(false)
   const [voicesError, setVoicesError]         = useState('')
-  const [selectedVoiceId, setSelectedVoiceId] = useState('')
-  const [previewPlaying, setPreviewPlaying]   = useState('')
+  const [selectedVoice, setSelectedVoice]     = useState('nova')   // OpenAI voice name
   const previewRef = useRef<HTMLAudioElement | null>(null)
 
   // ── Step 4: Generate ──
@@ -281,7 +271,7 @@ export default function CreateReelPage() {
     return () => { previewRef.current?.pause() }
   }, [])
 
-  // Asymptotic progress animation while generating
+  // Asymptotic progress animation while waiting for TTS
   useEffect(() => {
     if (!generating) return
     const tick = setInterval(() => {
@@ -321,7 +311,7 @@ export default function CreateReelPage() {
 
   // ── Step 2 → 3: Load voices ───────────────────────────────────────────────
   const loadVoices = useCallback(async () => {
-    if (voices.length > 0) return  // already loaded
+    if (voices.length > 0) return   // already loaded
     setVoicesLoading(true)
     setVoicesError('')
 
@@ -329,10 +319,8 @@ export default function CreateReelPage() {
       const res = await fetch('/api/reel/voices')
 
       if (!res.ok) {
-        // Surface the actual error (e.g. 401 Unauthorized, 500 server error)
         const data = await res.json().catch(() => ({})) as { error?: string }
         setVoicesError(data.error ?? `Failed to load voices (HTTP ${res.status})`)
-        setVoices([])
         return
       }
 
@@ -340,64 +328,45 @@ export default function CreateReelPage() {
       const list = data.voices ?? []
 
       if (list.length === 0) {
-        setVoicesError('No voices returned. Check ELEVENLABS_API_KEY in your environment.')
+        setVoicesError('No voices returned from the server.')
         return
       }
 
       setVoices(list)
-      if (!selectedVoiceId) setSelectedVoiceId(list[0].voice_id)
+      // Keep 'nova' as default if it exists, otherwise pick first
+      const hasNova = list.some((v) => v.voice_id === 'nova')
+      if (!hasNova) setSelectedVoice(list[0].voice_id)
     } catch (err) {
-      setVoicesError(`Network error loading voices: ${err instanceof Error ? err.message : String(err)}`)
-      setVoices([])
+      setVoicesError(
+        `Network error loading voices: ${err instanceof Error ? err.message : String(err)}`
+      )
     } finally {
       setVoicesLoading(false)
     }
-  }, [voices.length, selectedVoiceId])
+  }, [voices.length])
 
   function goToVoices() {
     setStep(3)
     loadVoices()
   }
 
-  // ── Voice preview ─────────────────────────────────────────────────────────
-  function togglePreview(voice: Voice) {
-    if (!voice.preview_url) return
-
-    if (previewRef.current) {
-      previewRef.current.pause()
-      previewRef.current.onended = null
-      previewRef.current = null
-      if (previewPlaying === voice.voice_id) {
-        setPreviewPlaying('')
-        return
-      }
-    }
-
-    const audio = new Audio(voice.preview_url)
-    previewRef.current = audio
-    setPreviewPlaying(voice.voice_id)
-    audio.play().catch(() => setPreviewPlaying(''))
-    audio.onended = () => setPreviewPlaying('')
-  }
-
   // ── Step 3 → 4: Generate voiceover ───────────────────────────────────────
-  // FIX: setStep(4) is called FIRST so the loading spinner appears immediately.
-  // Previously it was called only after a successful response, making the UI
-  // appear frozen for the entire ElevenLabs TTS duration (30–60 s).
+  // setStep(4) is called FIRST so the loading card appears immediately —
+  // without this the UI looks frozen for the entire OpenAI TTS request duration.
   async function handleGenerate() {
-    if (!selectedVoiceId || !scenes.length) return
+    if (!selectedVoice || !scenes.length) return
 
     setGenerating(true)
     setProgress(0)
     setGenerateError('')
     setResult(null)
-    setStep(4)  // ← show loading card immediately before the fetch
+    setStep(4)  // ← show loading card before fetch
 
     try {
-      const res = await fetch('/api/reel/generate', {
+      const res  = await fetch('/api/reel/generate', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ scenes, voice_id: selectedVoiceId, title: scriptTitle }),
+        body:    JSON.stringify({ scenes, voice: selectedVoice, title: scriptTitle }),
       })
 
       const json = await res.json()
@@ -425,7 +394,7 @@ export default function CreateReelPage() {
     setTopic('')
     setScriptTitle('')
     setScenes([])
-    setSelectedVoiceId(voices[0]?.voice_id ?? '')
+    setSelectedVoice('nova')
     setProgress(0)
     setResult(null)
     setGenerateError('')
@@ -436,7 +405,7 @@ export default function CreateReelPage() {
     setScenes((prev) => prev.map((s, i) => (i === index ? { ...s, voiceover } : s)))
   }
 
-  const selectedVoice = voices.find((v) => v.voice_id === selectedVoiceId)
+  const activeVoiceObj = voices.find((v) => v.voice_id === selectedVoice)
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -445,11 +414,10 @@ export default function CreateReelPage() {
       <div>
         <h1 className="text-2xl font-bold mb-1">Create Reel</h1>
         <p className="text-gray-400 text-sm">
-          AI script → ElevenLabs voiceover → ready to film. Uses 5 credits.
+          AI script → OpenAI voiceover → ready to film. Uses 5 credits.
         </p>
       </div>
 
-      {/* Step indicator */}
       <StepIndicator current={step} />
 
       {/* ── Step 1: Topic & Niche ─────────────────────────────────────────── */}
@@ -548,7 +516,7 @@ export default function CreateReelPage() {
           </div>
 
           <p className="text-xs text-gray-500 bg-surface-card border border-surface-border rounded-lg px-3 py-2">
-            ✏️ You can edit any voiceover text below before generating the audio.
+            ✏️ Edit any voiceover text below before generating audio.
             Visual direction notes are read-only guidance for filming.
           </p>
 
@@ -576,22 +544,23 @@ export default function CreateReelPage() {
       {step === 3 && (
         <div className="space-y-5">
           <div>
-            <h2 className="text-base font-semibold mb-1">Step 3 — Choose a Voice</h2>
+            <h2 className="text-base font-semibold mb-0.5">Step 3 — Choose a Voice</h2>
             <p className="text-xs text-gray-500">
-              Select an ElevenLabs voice for your voiceover. Click Preview to audition.
+              Powered by OpenAI TTS · model <code className="text-gray-400">tts-1</code>.
+              Select a voice that matches your content style.
             </p>
           </div>
 
           {/* Loading skeletons */}
           {voicesLoading && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {[...Array(3)].map((_, i) => (
+              {[...Array(6)].map((_, i) => (
                 <div key={i} className="h-28 bg-surface-card border border-surface-border rounded-xl animate-pulse" />
               ))}
             </div>
           )}
 
-          {/* Voices error */}
+          {/* Error */}
           {!voicesLoading && voicesError && (
             <Card>
               <CardContent className="py-8 space-y-3">
@@ -612,32 +581,30 @@ export default function CreateReelPage() {
             </Card>
           )}
 
-          {/* Voice grid */}
+          {/* Voice grid — 2 cols on sm, 3 on lg */}
           {!voicesLoading && !voicesError && voices.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {voices.map((voice) => (
                 <VoiceCard
                   key={voice.voice_id}
                   voice={voice}
-                  selected={selectedVoiceId === voice.voice_id}
-                  previewPlaying={previewPlaying === voice.voice_id}
-                  onSelect={() => setSelectedVoiceId(voice.voice_id)}
-                  onTogglePreview={() => togglePreview(voice)}
+                  selected={selectedVoice === voice.voice_id}
+                  onSelect={() => setSelectedVoice(voice.voice_id)}
                 />
               ))}
             </div>
           )}
 
           {/* Selected voice pill */}
-          {selectedVoice && (
+          {activeVoiceObj && (
             <div className="flex items-center gap-2 text-sm text-gray-400 bg-surface-card border border-surface-border rounded-lg px-4 py-3">
-              <Check className="w-4 h-4 text-brand-400" />
-              Selected: <span className="text-white font-medium">{selectedVoice.name}</span>
-              {(selectedVoice.accent || selectedVoice.gender) && (
-                <span className="text-gray-600 capitalize">
-                  ({[selectedVoice.accent, selectedVoice.gender].filter(Boolean).join(' ')})
-                </span>
-              )}
+              <Check className="w-4 h-4 text-brand-400 shrink-0" />
+              <span>Selected:</span>
+              <span className="text-white font-medium">{activeVoiceObj.name}</span>
+              <span className="text-gray-600 capitalize">
+                ({[activeVoiceObj.accent, activeVoiceObj.gender].filter(Boolean).join(' ')})
+              </span>
+              <span className="ml-auto text-xs text-gray-600">OpenAI tts-1</span>
             </div>
           )}
 
@@ -652,7 +619,7 @@ export default function CreateReelPage() {
               </p>
               <Button
                 onClick={handleGenerate}
-                disabled={!selectedVoiceId || voicesLoading || generating}
+                disabled={!selectedVoice || voicesLoading || generating}
               >
                 {generating
                   ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating voiceover…</>
@@ -667,7 +634,7 @@ export default function CreateReelPage() {
       {step === 4 && (
         <div className="space-y-5">
 
-          {/* ── Loading ── */}
+          {/* Loading */}
           {generating && (
             <Card>
               <CardContent className="flex flex-col items-center py-16 gap-5">
@@ -678,11 +645,9 @@ export default function CreateReelPage() {
                 <div className="text-center space-y-1">
                   <p className="text-base font-semibold">Generating voiceover…</p>
                   <p className="text-xs text-gray-500">
-                    ElevenLabs TTS → Cloudinary upload → saving to projects
+                    OpenAI tts-1 → Cloudinary upload → saving to projects
                   </p>
                 </div>
-
-                {/* Progress bar */}
                 <div className="w-full max-w-sm">
                   <div className="flex justify-between text-xs text-gray-500 mb-1">
                     <span>Processing</span>
@@ -699,7 +664,7 @@ export default function CreateReelPage() {
             </Card>
           )}
 
-          {/* ── Error ── */}
+          {/* Error */}
           {!generating && generateError && (
             <Card>
               <CardContent className="py-10 text-center space-y-4">
@@ -725,10 +690,10 @@ export default function CreateReelPage() {
             </Card>
           )}
 
-          {/* ── Success ── */}
+          {/* Success */}
           {!generating && result && (
             <div className="space-y-5">
-              {/* Success banner */}
+              {/* Banner */}
               <div className="flex items-center gap-3 bg-green-950/40 border border-green-800 rounded-xl px-5 py-4">
                 <div className="w-10 h-10 rounded-full bg-green-950 border border-green-700 flex items-center justify-center shrink-0">
                   <Check className="w-5 h-5 text-green-400" />
@@ -740,13 +705,13 @@ export default function CreateReelPage() {
                 <Badge variant="success">Complete</Badge>
               </div>
 
-              {/* Quota fallback notice */}
+              {/* Rate-limit fallback notice */}
               {result.usedFallbackAudio && (
                 <div className="flex items-start gap-2 bg-yellow-950/30 border border-yellow-800 rounded-xl px-4 py-3 text-sm text-yellow-300">
                   <Info className="w-4 h-4 shrink-0 mt-0.5" />
                   <span>
-                    ElevenLabs quota was exceeded — a sample audio file was used so your project
-                    was still saved. Top up your ElevenLabs plan to generate real voiceovers.
+                    OpenAI TTS was rate-limited — a sample audio was used so your project was still
+                    saved. Wait a moment and retry to get the real voiceover.
                   </span>
                 </div>
               )}
@@ -757,8 +722,11 @@ export default function CreateReelPage() {
                   <CardTitle className="flex items-center gap-2 text-sm">
                     <Volume2 className="w-4 h-4 text-brand-400" />
                     Voiceover Preview
-                    {selectedVoice && (
-                      <span className="text-gray-500 font-normal">— {selectedVoice.name}</span>
+                    {activeVoiceObj && (
+                      <span className="text-gray-500 font-normal">
+                        — {activeVoiceObj.name}
+                        <span className="text-gray-600 ml-1 text-xs">(OpenAI tts-1)</span>
+                      </span>
                     )}
                   </CardTitle>
                 </CardHeader>
@@ -771,11 +739,10 @@ export default function CreateReelPage() {
                         className="w-full rounded-lg"
                         style={{ colorScheme: 'dark' }}
                       />
+                      {/* Prefer dataUrl for download so filename works; fall back to voiceUrl */}
                       <a
-                        href={result.voiceUrl}
+                        href={result.dataUrl || result.voiceUrl}
                         download="voiceover.mp3"
-                        target="_blank"
-                        rel="noreferrer"
                         className="inline-flex items-center gap-2 text-xs text-brand-400 hover:text-brand-300 transition-colors"
                       >
                         <Download className="w-3.5 h-3.5" /> Download MP3
@@ -783,8 +750,8 @@ export default function CreateReelPage() {
                     </div>
                   ) : (
                     <p className="text-sm text-yellow-400 bg-yellow-950/30 border border-yellow-800 rounded-lg px-3 py-2">
-                      Audio was generated but could not be uploaded. Configure valid Cloudinary
-                      credentials to enable audio hosting.
+                      Audio was generated but could not be hosted. Configure Cloudinary credentials
+                      to enable permanent audio storage.
                     </p>
                   )}
                 </CardContent>

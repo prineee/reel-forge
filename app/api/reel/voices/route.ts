@@ -2,51 +2,84 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
 export interface Voice {
-  voice_id: string
+  voice_id: string      // OpenAI voice name sent directly to the TTS API
   name: string
+  description: string
+  gender: string        // female | male | neutral
   language: string
   category: string
-  preview_url: string
-  gender: string
+  preview_url: string   // empty — OpenAI does not expose preview URLs
   accent: string
-  description: string
   age: string
 }
 
-// Exactly 3 hardcoded fallbacks as specified — used when ElevenLabs is unavailable
-const FALLBACK_VOICES: Voice[] = [
+// Static list — OpenAI TTS voices never change, no API call required
+const OPENAI_VOICES: Voice[] = [
   {
-    voice_id:    '21m00Tcm4TlvDq8ikWAM',
-    name:        'Rachel - American Female',
-    language:    'English',
-    category:    'premade',
-    preview_url: '',
+    voice_id:    'nova',
+    name:        'Nova',
+    description: 'Warm & natural · great for general narration',
     gender:      'female',
+    language:    'English',
+    category:    'openai',
+    preview_url: '',
     accent:      'american',
-    description: 'calm',
-    age:         'young',
+    age:         '',
   },
   {
-    voice_id:    'AZnzlk1XvdvUeBnXmlld',
-    name:        'Domi - American Female',
+    voice_id:    'alloy',
+    name:        'Alloy',
+    description: 'Neutral & balanced · versatile, works for anything',
+    gender:      'neutral',
     language:    'English',
-    category:    'premade',
+    category:    'openai',
     preview_url: '',
-    gender:      'female',
     accent:      'american',
-    description: 'strong',
-    age:         'young',
+    age:         '',
   },
   {
-    voice_id:    'ErXwobaYiN019PkySvjV',
-    name:        'Antoni - American Male',
-    language:    'English',
-    category:    'premade',
-    preview_url: '',
+    voice_id:    'echo',
+    name:        'Echo',
+    description: 'Clear & direct · crisp delivery for narration',
     gender:      'male',
+    language:    'English',
+    category:    'openai',
+    preview_url: '',
     accent:      'american',
-    description: 'well-rounded',
-    age:         'young',
+    age:         '',
+  },
+  {
+    voice_id:    'fable',
+    name:        'Fable',
+    description: 'Expressive & engaging · British accent storytelling',
+    gender:      'male',
+    language:    'English',
+    category:    'openai',
+    preview_url: '',
+    accent:      'british',
+    age:         '',
+  },
+  {
+    voice_id:    'onyx',
+    name:        'Onyx',
+    description: 'Deep & authoritative · commanding and confident',
+    gender:      'male',
+    language:    'English',
+    category:    'openai',
+    preview_url: '',
+    accent:      'american',
+    age:         '',
+  },
+  {
+    voice_id:    'shimmer',
+    name:        'Shimmer',
+    description: 'Bright & expressive · energetic and engaging',
+    gender:      'female',
+    language:    'English',
+    category:    'openai',
+    preview_url: '',
+    accent:      'american',
+    age:         '',
   },
 ]
 
@@ -58,58 +91,6 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const apiKey = process.env.ELEVENLABS_API_KEY
-  if (!apiKey) {
-    console.log('[voices] ELEVENLABS_API_KEY not set — returning fallback voices')
-    return NextResponse.json({ voices: FALLBACK_VOICES })
-  }
-
-  console.log('[voices] Fetching voices from ElevenLabs...')
-
-  try {
-    const res = await fetch('https://api.elevenlabs.io/v1/voices', {
-      headers: { 'xi-api-key': apiKey },
-      next: { revalidate: 3600 },
-    })
-
-    if (!res.ok) {
-      console.error('[voices] ElevenLabs API error:', res.status, res.statusText)
-      return NextResponse.json({ voices: FALLBACK_VOICES })
-    }
-
-    const data = await res.json() as {
-      voices: Array<{
-        voice_id: string
-        name: string
-        category: string
-        preview_url: string
-        labels?: Record<string, string>
-      }>
-    }
-
-    console.log('[voices] ElevenLabs returned', data.voices?.length ?? 0, 'voices')
-
-    const voices: Voice[] = (data.voices ?? [])
-      .filter((v) => v.category === 'premade' && v.preview_url)
-      .slice(0, 12)
-      .map((v) => ({
-        voice_id:    v.voice_id,
-        name:        v.name,
-        language:    v.labels?.language    ?? 'English',
-        category:    v.category,
-        preview_url: v.preview_url ?? '',
-        gender:      v.labels?.gender      ?? 'unknown',
-        accent:      v.labels?.accent      ?? '',
-        description: v.labels?.description ?? '',
-        age:         v.labels?.age         ?? '',
-      }))
-
-    const result = voices.length ? voices : FALLBACK_VOICES
-    console.log('[voices] Returning', result.length, 'voices (fallback:', voices.length === 0, ')')
-
-    return NextResponse.json({ voices: result })
-  } catch (err) {
-    console.error('[voices] Fetch threw:', err)
-    return NextResponse.json({ voices: FALLBACK_VOICES })
-  }
+  console.log('[voices] Returning', OPENAI_VOICES.length, 'OpenAI TTS voices')
+  return NextResponse.json({ voices: OPENAI_VOICES })
 }
