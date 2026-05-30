@@ -12,12 +12,11 @@ interface Scene {
   visualNote: string
 }
 
-const VALID_VOICES = ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'] as const
-type OpenAIVoice = typeof VALID_VOICES[number]
-
-// Returned when OpenAI TTS is rate-limited (429) — project is still saved
+// Returned when Groq TTS is rate-limited (429) — project is still saved
 const RATE_LIMIT_FALLBACK_URL =
   'https://www.learningcontainer.com/wp-content/uploads/2020/02/Kalimba.mp3'
+
+const DEFAULT_VOICE = 'Celeste-PlayAI'
 
 export async function POST(request: Request) {
   console.log('[reel/generate] Request received')
@@ -43,21 +42,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
   }
 
-  const { scenes, voice: rawVoice, title } = body
+  const { scenes, voice = DEFAULT_VOICE, title } = body
 
   if (!scenes?.length) {
     return NextResponse.json({ error: 'scenes are required' }, { status: 400 })
   }
 
-  // Default to nova; reject unknown voice names gracefully
-  const voice: OpenAIVoice = VALID_VOICES.includes(rawVoice as OpenAIVoice)
-    ? (rawVoice as OpenAIVoice)
-    : 'nova'
-
-  const openaiKey = process.env.OPENAI_API_KEY
-  if (!openaiKey) {
-    console.error('[reel/generate] OPENAI_API_KEY not configured')
-    return NextResponse.json({ error: 'OpenAI API key not configured' }, { status: 500 })
+  const groqKey = process.env.GROQ_API_KEY
+  if (!groqKey) {
+    console.error('[reel/generate] GROQ_API_KEY not configured')
+    return NextResponse.json({ error: 'Groq API key not configured' }, { status: 500 })
   }
 
   // Join all scene voiceovers separated by a natural pause
@@ -68,40 +62,40 @@ export async function POST(request: Request) {
 
   console.log('[reel/generate] Voiceover text:', fullVoiceover.length, 'chars, voice:', voice)
 
-  // ── Step 1: OpenAI TTS ────────────────────────────────────────────────────
+  // ── Step 1: Groq TTS ──────────────────────────────────────────────────────
   let audioBuffer: ArrayBuffer | null = null
-  let dataUrl = ''                    // base64 data URL — always populated on success
-  let voiceUrl = ''                   // best URL for playback (Cloudinary > data URL)
+  let dataUrl = ''          // base64 data URL — populated on TTS success
+  let voiceUrl = ''         // best playback URL (Cloudinary > data URL > fallback)
 
   try {
-    console.log('[reel/generate] Calling OpenAI TTS...')
+    console.log('[reel/generate] Calling Groq TTS (playai-tts)...')
 
-    const ttsRes = await fetch('https://api.openai.com/v1/audio/speech', {
+    const ttsRes = await fetch('https://api.groq.com/openai/v1/audio/speech', {
       method: 'POST',
       headers: {
-        Authorization:  `Bearer ${openaiKey}`,
+        Authorization:  `Bearer ${groqKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model:           'tts-1',
+        model:           'playai-tts',
         input:           fullVoiceover,
-        voice,
-        response_format: 'mp3',
+        voice:           voice || DEFAULT_VOICE,
+        response_format: 'wav',
       }),
     })
 
-    console.log('[reel/generate] OpenAI TTS response status:', ttsRes.status)
+    console.log('[reel/generate] Groq TTS response status:', ttsRes.status)
 
     if (!ttsRes.ok) {
-      // Parse error — OpenAI returns JSON for all errors
+      // Groq returns JSON for all errors
       const rawError = await ttsRes.text().catch(() => '')
-      let errMsg = `OpenAI TTS error ${ttsRes.status}`
+      let errMsg = `Groq TTS error ${ttsRes.status}`
       try {
         const parsed = JSON.parse(rawError)
-        errMsg = parsed?.error?.message ?? errMsg
+        errMsg = parsed?.error?.message ?? parsed?.message ?? errMsg
       } catch { /* non-JSON body */ }
 
-      console.error('[reel/generate] OpenAI TTS error:', ttsRes.status, errMsg)
+      console.error('[reel/generate] Groq TTS error:', ttsRes.status, errMsg)
 
       if (ttsRes.status === 429) {
         // Rate limited — use fallback so the project is still saved
@@ -112,16 +106,16 @@ export async function POST(request: Request) {
       }
     } else {
       audioBuffer = await ttsRes.arrayBuffer()
-      console.log('[reel/generate] OpenAI TTS success, audio bytes:', audioBuffer.byteLength)
+      console.log('[reel/generate] Groq TTS success, audio bytes:', audioBuffer.byteLength)
 
-      // Convert to base64 data URL for immediate browser playback
+      // Convert WAV audio to base64 data URL for immediate browser playback
       const base64 = Buffer.from(audioBuffer).toString('base64')
-      dataUrl = `data:audio/mpeg;base64,${base64}`
+      dataUrl = `data:audio/wav;base64,${base64}`
     }
   } catch (err) {
-    console.error('[reel/generate] OpenAI TTS fetch threw:', err)
+    console.error('[reel/generate] Groq TTS fetch threw:', err)
     return NextResponse.json(
-      { error: `OpenAI TTS request failed: ${err instanceof Error ? err.message : String(err)}` },
+      { error: `Groq TTS request failed: ${err instanceof Error ? err.message : String(err)}` },
       { status: 502 }
     )
   }
@@ -142,7 +136,7 @@ export async function POST(request: Request) {
         .digest('hex')
 
       const form = new FormData()
-      form.append('file',      dataUrl)   // reuse the base64 we already built
+      form.append('file',      dataUrl)  // reuse the base64 data URL already built
       form.append('api_key',   apiKey)
       form.append('timestamp', timestamp)
       form.append('signature', signature)
@@ -189,7 +183,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Failed to save project to database' }, { status: 500 })
   }
 
-  // Store Cloudinary URL in DB if available; never store the full data URL (too large)
+  // Never store the full base64 data URL in the DB — only the Cloudinary URL or null
   const dbVoiceUrl = voiceUrl.startsWith('data:') ? null : voiceUrl
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -214,10 +208,10 @@ export async function POST(request: Request) {
   )
 
   return NextResponse.json({
-    voiceUrl,                         // Cloudinary URL, data URL, or fallback
-    dataUrl,                          // base64 data URL (empty string on rate-limit fallback)
-    projectId:        project.id,
-    videoId:          video.id,
+    voiceUrl,                          // Cloudinary URL, data URL, or fallback
+    dataUrl,                           // base64 WAV data URL (empty on rate-limit fallback)
+    projectId:         project.id,
+    videoId:           video.id,
     usedFallbackAudio: usedFallback,
   })
 }
