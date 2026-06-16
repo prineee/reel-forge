@@ -15,11 +15,24 @@ const { createClient } = require('@supabase/supabase-js')
 const { generateSceneImage }      = require('../services/cartoon/imageGenerator')
 const { convertImageToVideoClip, generateColorClip } = require('../services/cartoon/motionEffect')
 
+const WebSocket = require('ws')
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY,
+  {
+    global: {
+      WebSocket,
+    },
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  }
+)
+
 function getSupabase() {
-  return createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-  )
+  return supabase
 }
 
 function resolveBin(envKey, systemPath, bareName) {
