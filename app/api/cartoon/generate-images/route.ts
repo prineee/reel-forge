@@ -43,7 +43,8 @@ export async function POST(request: Request) {
     .update({ status: 'generating_images' })
     .eq('id', story_id)
 
-  const workerUrl = (process.env.NEXT_PUBLIC_WORKER_URL || 'http://localhost:3001').replace(/\/$/, '')
+  const workerUrl = (process.env.NEXT_PUBLIC_WORKER_URL || 'https://reel-forge-production.up.railway.app').replace(/\/$/, '')
+  console.log('[cartoon/generate-images] workerUrl:', workerUrl)
 
   // Stream SSE from worker to client
   const encoder = new TextEncoder()
@@ -56,6 +57,7 @@ export async function POST(request: Request) {
       }
 
       try {
+        console.log('[cartoon/generate-images] fetch start →', `${workerUrl}/api/cartoon/generate-images`)
         const workerRes = await fetch(`${workerUrl}/api/cartoon/generate-images`, {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -68,12 +70,14 @@ export async function POST(request: Request) {
           signal: AbortSignal.timeout(290_000),
         })
 
+        console.log('[cartoon/generate-images] worker responded:', workerRes.status, workerRes.headers.get('content-type'))
         if (!workerRes.ok || !workerRes.body) {
           send({ type: 'error', error: `Worker error: ${workerRes.status}` })
           controller.close()
           return
         }
 
+        console.log('[cartoon/generate-images] streaming SSE from worker...')
         const reader = workerRes.body.getReader()
         const dec    = new TextDecoder()
 
@@ -84,8 +88,11 @@ export async function POST(request: Request) {
           controller.enqueue(encoder.encode(chunk))
         }
       } catch (err) {
-        send({ type: 'error', error: err instanceof Error ? err.message : 'Unknown error' })
+        const msg = err instanceof Error ? err.message : 'Unknown error'
+        console.error('[cartoon/generate-images] fetch/stream error:', msg)
+        send({ type: 'error', error: msg })
       } finally {
+        console.log('[cartoon/generate-images] stream closed')
         controller.close()
       }
     },
