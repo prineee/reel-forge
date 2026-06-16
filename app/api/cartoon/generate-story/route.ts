@@ -84,65 +84,18 @@ export async function POST(req: Request) {
 
   const groq       = new Groq({ apiKey: groqApiKey })
   const styleGuide = STYLE_PROMPTS[visual_style] ?? STYLE_PROMPTS['anime']
-  const maxTokens  = Math.min(32000, config.scenes * 300 + 3000)
+  // Per-tier output budget: input (~250 tokens) + max_tokens must stay under 12 000 TPM
+  const MAX_TOKENS: Record<number, number> = { 1: 3500, 3: 7500, 5: 9500, 10: 11500 }
+  const maxTokens  = MAX_TOKENS[durMins] ?? 3500
 
-  const userPrompt = `Create a ${durMins}-minute ${genre} cartoon story based on this idea: "${prompt.trim()}"
+  const userPrompt = `${durMins}-min ${genre} cartoon. Idea: "${prompt.trim()}"
+Style: ${visual_style} — ${styleGuide}
+Scenes: exactly ${config.scenes}, ~${config.wordsPerScene} words narration each.
 
-Visual style: ${visual_style} — ${styleGuide}
-Total scenes required: ${config.scenes}
+Return JSON with these exact keys:
+{"title":string,"storyline":string,"characters":[{"name":string,"role":"main"|"supporting"|"villain"|"narrator","description":string,"visualPrompt":string,"personality":string}],"scenes":[{"number":int,"title":string,"narration":string,"visualDescription":string,"visualKeywords":[3 strings],"imagePrompt":string,"charactersInScene":[strings],"motionEffect":"zoom_in"|"zoom_out"|"pan_left"|"pan_right"|"ken_burns"|"static","duration_seconds":int}]}
 
-Generate the following:
-
-1. A compelling title (3-6 words)
-2. A short storyline (2-3 sentences describing the full arc)
-3. Exactly 2-4 named characters
-4. Exactly ${config.scenes} scenes that tell the complete story
-
-CHARACTER format:
-- name: character's name
-- role: "main" | "supporting" | "villain" | "narrator"
-- description: physical appearance (1-2 sentences)
-- visualPrompt: detailed fragment to include in every image prompt for visual consistency (20-30 words)
-- personality: single sentence
-
-SCENE format (each scene):
-- number: sequential 1 to ${config.scenes}
-- title: short scene title (3-5 words)
-- narration: voiceover spoken aloud (~${config.wordsPerScene} words)
-- visualDescription: what appears on screen (1 sentence)
-- visualKeywords: exactly 3 specific visual search terms as array
-- imagePrompt: complete AI image generation prompt (25-40 words, include "${styleGuide}")
-- charactersInScene: array of character names present
-- motionEffect: one of "zoom_in" | "zoom_out" | "pan_left" | "pan_right" | "ken_burns" | "static"
-- duration_seconds: integer 4-8
-
-Respond ONLY with valid JSON in this exact shape:
-{
-  "title": "Story Title",
-  "storyline": "Two sentence summary of the complete story arc.",
-  "characters": [
-    {
-      "name": "Hero Name",
-      "role": "main",
-      "description": "Physical description.",
-      "visualPrompt": "young hero, brown hair, blue jacket, determined expression, ${visual_style} style",
-      "personality": "Brave and curious."
-    }
-  ],
-  "scenes": [
-    {
-      "number": 1,
-      "title": "Scene Title",
-      "narration": "Voiceover text here.",
-      "visualDescription": "What appears on screen.",
-      "visualKeywords": ["keyword1", "keyword2", "keyword3"],
-      "imagePrompt": "Full image generation prompt here, ${styleGuide}",
-      "charactersInScene": ["Hero Name"],
-      "motionEffect": "ken_burns",
-      "duration_seconds": 6
-    }
-  ]
-}`
+Rules: 2-4 characters. Exactly ${config.scenes} scenes numbered 1-${config.scenes}. Each imagePrompt must include "${styleGuide}". Build a complete arc: setup → conflict → climax → resolution.`
 
   try {
     const completion = await groq.chat.completions.create({
@@ -150,7 +103,7 @@ Respond ONLY with valid JSON in this exact shape:
       messages: [
         {
           role:    'system',
-          content: 'You are a professional cartoon story writer and visual director. Always respond with valid JSON only. Never include markdown fences.',
+          content: 'Cartoon story writer. JSON only, no markdown.',
         },
         { role: 'user', content: userPrompt },
       ],
