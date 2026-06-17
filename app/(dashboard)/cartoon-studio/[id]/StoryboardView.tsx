@@ -108,10 +108,15 @@ export function StoryboardView({ story, characters, scenes: initialScenes }: Pro
             } else if (evt.type === 'done') {
               setGenerating(false)
               setProgress({ pct: 100, message: `Complete — ${evt.completed as number}/${evt.total as number} images generated` })
+            } else if (evt.type === 'error') {
+              setError((evt.error as string) ?? 'Generation failed')
+              setGenerating(false)
             }
           } catch {}
         }
       }
+      // Stream closed — ensure spinner stops even if 'done' event was not received
+      setGenerating(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Generation failed')
       setGenerating(false)

@@ -67,7 +67,6 @@ export async function POST(request: Request) {
             characters: characters || [],
             visual_style: story.visual_style,
           }),
-          signal: AbortSignal.timeout(290_000),
         })
 
         console.log('[cartoon/generate-images] worker responded:', workerRes.status, workerRes.headers.get('content-type'))
