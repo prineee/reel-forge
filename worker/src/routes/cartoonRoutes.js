@@ -239,6 +239,20 @@ router.post('/api/cartoon/generate-video', async (req, res) => {
       const clipPath   = path.join(clipDir, `clip_${String(i).padStart(3, '0')}.mp4`)
       const pct        = 20 + Math.round((i / scenes.length) * 50)
 
+      // Single validated duration, used consistently for rendering, concat.txt,
+      // totalSecs, and the persisted DB duration — prevents the render clamp
+      // (motionEffect.js floors at 2s) from drifting out of sync with a raw
+      // scene.duration_seconds value that concat.txt would otherwise declare.
+      const rawDuration       = Number(scene.duration_seconds)
+      const validatedDuration = Math.max(rawDuration || 5, 2)
+
+      if (!rawDuration || rawDuration < 2) {
+        console.warn(
+          `[video] Scene ${scene.scene_number}: invalid duration_seconds=${scene.duration_seconds} — auto-corrected to ${validatedDuration}s`
+        )
+      }
+      console.log(`[video] Scene ${scene.scene_number}: duration=${validatedDuration}s`)
+
       send({
         type:    'progress',
         pct,
@@ -261,23 +275,23 @@ router.post('/api/cartoon/generate-video', async (req, res) => {
           await convertImageToVideoClip(
             imgPath,
             clipPath,
-            scene.duration_seconds || 5,
+            validatedDuration,
             shot.motionEffect
           )
         } else {
           // No image — generate color placeholder
-          await generateColorClip(clipPath, scene.duration_seconds || 5, '#1a1a2e')
+          await generateColorClip(clipPath, validatedDuration, '#1a1a2e')
         }
 
         const size = fsSync.existsSync(clipPath) ? fsSync.statSync(clipPath).size : 0
         if (size > 0) {
-          clipPaths.push({ path: clipPath, duration: scene.duration_seconds || 5 })
+          clipPaths.push({ path: clipPath, duration: validatedDuration })
           console.log(`[cartoon/video] Clip ${i + 1}: ${size} bytes`)
         }
       } catch (err) {
         console.error(`[cartoon/video] Clip ${i + 1} failed: ${err.message} — using color`)
-        await generateColorClip(clipPath, scene.duration_seconds || 5)
-        clipPaths.push({ path: clipPath, duration: scene.duration_seconds || 5 })
+        await generateColorClip(clipPath, validatedDuration)
+        clipPaths.push({ path: clipPath, duration: validatedDuration })
       }
     }
 
