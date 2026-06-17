@@ -14,6 +14,7 @@ const { createClient } = require('@supabase/supabase-js')
 
 const { generateSceneImage }      = require('../services/cartoon/imageGenerator')
 const { convertImageToVideoClip, generateColorClip } = require('../services/cartoon/motionEffect')
+const { assignShot }              = require('../services/cartoon/cameraDirector')
 
 const WebSocket = require('ws')
 
@@ -254,12 +255,14 @@ router.post('/api/cartoon/generate-video', async (req, res) => {
           })
           fsSync.writeFileSync(imgPath, Buffer.from(imgRes.data))
 
-          // Apply motion effect
+          // Apply cinematic motion effect from camera director
+          const shot = assignShot(i, scenes.length)
+          console.log(`[cartoon/video] Scene ${i + 1}: ${shot.label} → ${shot.motionEffect}`)
           await convertImageToVideoClip(
             imgPath,
             clipPath,
             scene.duration_seconds || 5,
-            scene.motion_effect    || 'ken_burns'
+            shot.motionEffect
           )
         } else {
           // No image — generate color placeholder
