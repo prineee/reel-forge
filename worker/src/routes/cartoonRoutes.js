@@ -84,7 +84,7 @@ router.post('/api/cartoon/generate-images', async (req, res) => {
       .eq('id', scene.id)
 
     try {
-      const imageUrl = await generateSceneImage(scene, characters, visual_style || 'anime')
+      const imageUrl = await generateSceneImage(scene, characters, visual_style || 'anime', i, scenes.length)
 
       // Update DB: scene completed
       await supabase

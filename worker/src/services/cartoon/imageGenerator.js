@@ -9,20 +9,95 @@ const fs    = require('fs')
 const path  = require('path')
 
 // ── Style prompt suffixes ─────────────────────────────────────────────────────
+// NOTE: "9:16 vertical composition" removed — cinematic shot direction below
+// controls composition instead, which avoids portrait/closeup framing.
 const STYLE_PROMPTS = {
-  anime:      'anime style, Studio Ghibli inspired, clean lines, vibrant colors, expressive characters, 9:16 vertical composition, high quality',
-  cartoon:    'western cartoon style, bold black outlines, flat vivid colors, exaggerated expressions, 9:16 vertical composition, high quality',
-  comic_book: 'comic book style, bold ink outlines, halftone shading, dramatic lighting, Marvel DC style, 9:16 vertical composition',
-  watercolor: 'watercolor illustration, soft edges, pastel colors, artistic brush strokes, 9:16 vertical composition',
-  pixel_art:  '16-bit pixel art style, retro game aesthetic, chunky pixels, vibrant palette, 9:16 vertical',
-  clay:       'claymation style, 3D clay figures, smooth surfaces, warm lighting, stop-motion aesthetic, 9:16 vertical',
-  cinematic:  'photorealistic cinematic, dramatic lighting, film grain, epic composition, 9:16 vertical',
-  sketch:     'pencil sketch illustration, hand-drawn, black and white with subtle shading, 9:16 vertical',
+  anime:      'anime style, Studio Ghibli inspired, clean lines, vibrant colors, expressive characters, high quality',
+  cartoon:    'western cartoon style, bold black outlines, flat vivid colors, exaggerated expressions, high quality',
+  comic_book: 'comic book style, bold ink outlines, halftone shading, dramatic lighting, Marvel DC style',
+  watercolor: 'watercolor illustration, soft edges, pastel colors, artistic brush strokes',
+  pixel_art:  '16-bit pixel art style, retro game aesthetic, chunky pixels, vibrant palette',
+  clay:       'claymation style, 3D clay figures, smooth surfaces, warm lighting, stop-motion aesthetic',
+  cinematic:  'photorealistic cinematic, dramatic lighting, film grain, epic composition',
+  sketch:     'pencil sketch illustration, hand-drawn, black and white with subtle shading',
+}
+
+// ── Shot type planner ─────────────────────────────────────────────────────────
+// Rotates through 8 cinematic camera positions to create visual variety and
+// prevent the model from defaulting to extreme closeups / portrait framing.
+const SHOT_TYPES = [
+  {
+    name:      'Establishing Shot',
+    direction: 'Wide establishing shot. Entire environment fully visible. Characters visible but small within the large scene. Rich background storytelling. Panoramic cinematic landscape composition',
+  },
+  {
+    name:      'Medium Shot',
+    direction: 'Medium shot from waist up. Character clearly readable with detailed environment behind them. Background in full focus. Natural balanced scene framing',
+  },
+  {
+    name:      'Full Body Shot',
+    direction: 'Full body shot. Entire character from head to toe visible. Action and pose clearly shown. Detailed environment visible in background',
+  },
+  {
+    name:      'Over The Shoulder Shot',
+    direction: 'Over the shoulder shot. Two characters interacting. Both characters partially visible. Rich environment visible in foreground and background. Strong sense of depth',
+  },
+  {
+    name:      'Tracking Shot',
+    direction: 'Tracking shot. Character in motion, walking or moving through environment. Full body visible. Dynamic background with depth. Environmental storytelling',
+  },
+  {
+    name:      'Action Shot',
+    direction: 'Dynamic action shot. Full body visible. Dramatic movement and powerful pose. Motion implied through composition. Environment and setting clearly visible',
+  },
+  {
+    name:      'Emotional Shot',
+    direction: 'Emotional medium shot from chest up. Facial expression clearly visible. NOT a closeup. Background environment remains visible and in focus behind character',
+  },
+  {
+    name:      'Cinematic Finale Shot',
+    direction: 'Epic cinematic wide shot. Movie poster quality composition. Full environment visible. Characters visible within the grand scene. Dramatic lighting. Professional film framing',
+  },
+]
+
+// Appended to every prompt regardless of shot type or style.
+const CINEMATIC_QUALITY = [
+  'professional animated feature film frame',
+  'cinematic composition',
+  'high detail',
+  'consistent character design',
+  'consistent colors',
+  'environment fully visible',
+  'storytelling background',
+  'proper character proportions',
+  'professional lighting',
+  'depth of field',
+  'movie quality animation',
+  '4k animation frame',
+  'no extreme closeups',
+  'no cropped heads',
+  'no cropped bodies',
+  'no floating faces',
+  'no portrait framing',
+  'no blank backgrounds',
+].join(', ')
+
+function selectShotType(sceneIndex, totalScenes) {
+  // First scene: always establishing to set the world
+  if (sceneIndex === 0) return SHOT_TYPES[0]
+  // Last scene: always epic finale
+  if (totalScenes > 1 && sceneIndex === totalScenes - 1) return SHOT_TYPES[7]
+  // Middle scenes: cycle through all 8 types
+  return SHOT_TYPES[sceneIndex % SHOT_TYPES.length]
 }
 
 // ── Build full image prompt ───────────────────────────────────────────────────
-function buildFullPrompt(scene, characters, visualStyle) {
+function buildFullPrompt(scene, characters, visualStyle, sceneIndex, totalScenes) {
   const styleSuffix = STYLE_PROMPTS[visualStyle] || STYLE_PROMPTS.anime
+
+  const idx   = sceneIndex  !== undefined ? sceneIndex  : (scene.scene_number - 1)
+  const total = totalScenes !== undefined ? totalScenes : 10
+  const shot  = selectShotType(idx, total)
 
   // Inject character visual prompts for consistency
   const charFragments = (scene.characters_in_scene || [])
@@ -36,9 +111,11 @@ function buildFullPrompt(scene, characters, visualStyle) {
     .join('. ')
 
   const parts = [
+    `${shot.name}: ${shot.direction}`,
     scene.visual_description || scene.image_prompt || '',
     charFragments ? `Characters: ${charFragments}` : '',
     styleSuffix,
+    CINEMATIC_QUALITY,
     'no text, no watermarks, no logos',
   ].filter(Boolean)
 
@@ -192,12 +269,12 @@ async function uploadImageToCloudinary(imageBuffer, sceneId, storyId) {
 }
 
 // ── Main: generate image for one scene ───────────────────────────────────────
-async function generateSceneImage(scene, characters, visualStyle) {
+async function generateSceneImage(scene, characters, visualStyle, sceneIndex, totalScenes) {
   const togetherKey  = process.env.TOGETHER_API_KEY
   const replicateKey = process.env.REPLICATE_API_KEY
 
-  const prompt = buildFullPrompt(scene, characters, visualStyle)
-  console.log(`[imageGen] Scene ${scene.scene_number}: prompt="${prompt.slice(0, 100)}..."`)
+  const prompt = buildFullPrompt(scene, characters, visualStyle, sceneIndex, totalScenes)
+  console.log(`[imageGen] Scene ${scene.scene_number}: prompt="${prompt.slice(0, 120)}..."`)
 
   let imageBuffer = null
 
