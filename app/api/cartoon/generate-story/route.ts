@@ -126,10 +126,33 @@ Rules: 2-4 characters. Exactly ${config.scenes} scenes numbered 1-${config.scene
       throw new Error('Groq returned incomplete story data')
     }
 
+    // ── Normalize scene durations ────────────────────────────────────────────
+    // Groq's per-scene duration_seconds is unreliable (drifts away from the
+    // tier's intended runtime). Distribute the exact target runtime evenly
+    // across scenes instead of trusting the LLM's values.
+    const targetTotalSeconds = durMins * 60
+    const sceneCount         = generated.scenes.length
+    const baseSeconds        = Math.floor(targetTotalSeconds / sceneCount)
+    let   remainder          = targetTotalSeconds - baseSeconds * sceneCount
+
+    generated.scenes.forEach((s: GeneratedScene) => {
+      s.duration_seconds = baseSeconds + (remainder-- > 0 ? 1 : 0)
+    })
+
+    console.log(`[story] Target duration: ${targetTotalSeconds}s`)
+    console.log(`[story] Scene count: ${sceneCount}`)
+    console.log(`[story] Assigned duration per scene: ${baseSeconds}s`)
+
     // ── Insert cartoon_stories ────────────────────────────────────────────────
     const totalSeconds = generated.scenes.reduce(
-      (sum: number, s: GeneratedScene) => sum + (s.duration_seconds ?? 6), 0
+      (sum: number, s: GeneratedScene) => sum + s.duration_seconds, 0
     )
+
+    if (totalSeconds !== targetTotalSeconds) {
+      throw new Error(
+        `Duration normalization mismatch: sum=${totalSeconds}, target=${targetTotalSeconds}`
+      )
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: story, error: storyError } = await (supabase.from('cartoon_stories') as any)
