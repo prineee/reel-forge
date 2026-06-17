@@ -51,6 +51,10 @@ export function StoryboardView({ story, characters, scenes: initialScenes }: Pro
   const [generating, setGenerating] = useState(false)
   const [progress, setProgress]     = useState({ pct: 0, message: '' })
   const [error, setError]           = useState('')
+  const [isGeneratingVideo, setIsGeneratingVideo] = useState(false)
+  const [videoProgress, setVideoProgress]         = useState({ pct: 0, message: '' })
+  const [videoError, setVideoError]               = useState('')
+  const [videoUrl, setVideoUrl]                   = useState<string | null>(story.video_url)
 
   const pendingCount = scenes.filter(s => s.image_status !== 'completed').length
   const allDone      = pendingCount === 0
@@ -120,6 +124,63 @@ export function StoryboardView({ story, characters, scenes: initialScenes }: Pro
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Generation failed')
       setGenerating(false)
+    }
+  }, [story.id])
+
+  const handleGenerateVideo = useCallback(async () => {
+    setIsGeneratingVideo(true)
+    setVideoError('')
+    setVideoProgress({ pct: 0, message: 'Starting video generation...' })
+
+    try {
+      const res = await fetch('/api/cartoon/generate-video', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ story_id: story.id }),
+      })
+
+      if (!res.ok || !res.body) {
+        const json = await res.json().catch(() => ({}))
+        setVideoError((json as { error?: string }).error ?? `HTTP ${res.status}`)
+        setIsGeneratingVideo(false)
+        return
+      }
+
+      const reader = res.body.getReader()
+      const dec    = new TextDecoder()
+      let buf      = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buf += dec.decode(value, { stream: true })
+        const lines = buf.split('\n')
+        buf = lines.pop() ?? ''
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          try {
+            const evt = JSON.parse(line.slice(6)) as Record<string, unknown>
+            if (evt.type === 'start') {
+              setVideoProgress({ pct: 0, message: `Generating video for ${evt.total_scenes as number} scenes...` })
+            } else if (evt.type === 'progress') {
+              setVideoProgress({ pct: (evt.pct as number) ?? 0, message: (evt.message as string) ?? '' })
+            } else if (evt.type === 'done') {
+              setVideoUrl(evt.video_url as string)
+              setVideoProgress({ pct: 100, message: 'Video ready!' })
+              setIsGeneratingVideo(false)
+            } else if (evt.type === 'error') {
+              setVideoError((evt.error as string) ?? 'Video generation failed')
+              setIsGeneratingVideo(false)
+            }
+          } catch {}
+        }
+      }
+      // Stream closed — ensure spinner stops even if 'done' was not received
+      setIsGeneratingVideo(false)
+    } catch (err) {
+      setVideoError(err instanceof Error ? err.message : 'Video generation failed')
+      setIsGeneratingVideo(false)
     }
   }, [story.id])
 
@@ -225,23 +286,83 @@ export function StoryboardView({ story, characters, scenes: initialScenes }: Pro
         </div>
       )}
 
-      {/* Completion status */}
+      {/* Completion status + Generate Video */}
       {allDone && (
-        <div style={{
-          marginBottom: 24, padding: '12px 16px', borderRadius: 8,
-          background: '#14532d', border: '1px solid #22c55e', color: '#86efac', fontSize: 14,
-        }}>
-          ✓ All {scenes.length} scene images generated.
-          {progress.message && <span style={{ color: '#4ade80', marginLeft: 8 }}>{progress.message}</span>}
-        </div>
+        <>
+          <div style={{
+            marginBottom: 16, padding: '12px 16px', borderRadius: 8,
+            background: '#14532d', border: '1px solid #22c55e', color: '#86efac', fontSize: 14,
+          }}>
+            ✓ All {scenes.length} scene images generated.
+            {progress.message && <span style={{ color: '#4ade80', marginLeft: 8 }}>{progress.message}</span>}
+          </div>
+
+          {!videoUrl && (
+            <div style={{ marginBottom: 24 }}>
+              {!isGeneratingVideo ? (
+                <button
+                  onClick={handleGenerateVideo}
+                  style={{
+                    padding: '12px 28px', borderRadius: 8, fontSize: 15, fontWeight: 700,
+                    background: 'linear-gradient(135deg,#0f766e,#0891b2)',
+                    color: '#fff', border: 'none', cursor: 'pointer',
+                  }}
+                >
+                  🎬 Generate Video
+                </button>
+              ) : (
+                <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, padding: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                    <span style={{ fontSize: 16 }}>🎬</span>
+                    <span style={{ fontSize: 14, fontWeight: 600 }}>Assembling movie...</span>
+                    <span style={{ marginLeft: 'auto', fontSize: 13, color: '#0891b2', fontWeight: 700 }}>
+                      {videoProgress.pct}%
+                    </span>
+                  </div>
+                  <div style={{ height: 5, background: '#0f172a', borderRadius: 3, overflow: 'hidden' }}>
+                    <div style={{
+                      height: '100%', width: `${videoProgress.pct}%`,
+                      background: 'linear-gradient(90deg,#0f766e,#0891b2)',
+                      transition: 'width 0.4s ease', borderRadius: 3,
+                    }} />
+                  </div>
+                  <p style={{ fontSize: 12, color: '#94a3b8', margin: '8px 0 0' }}>{videoProgress.message}</p>
+                </div>
+              )}
+              {videoError && (
+                <div style={{
+                  marginTop: 10, padding: '10px 14px', borderRadius: 8,
+                  background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
+                  color: '#fca5a5', fontSize: 13,
+                }}>
+                  {videoError}
+                </div>
+              )}
+            </div>
+          )}
+        </>
       )}
 
-      {/* Video (if generated) */}
-      {story.video_url && (
+      {/* Video player — renders as soon as videoUrl arrives (no page refresh needed) */}
+      {videoUrl && (
         <div style={{ marginBottom: 28, background: '#1e293b', borderRadius: 12, padding: 20 }}>
-          <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 12 }}>🎬 Generated Video</h3>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <h3 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>🎬 Generated Video</h3>
+            <a
+              href={videoUrl}
+              download
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                padding: '6px 14px', borderRadius: 6, fontSize: 13, fontWeight: 600,
+                background: '#0f766e', color: '#fff', textDecoration: 'none',
+              }}
+            >
+              ⬇ Download
+            </a>
+          </div>
           {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-          <video controls src={story.video_url} style={{ width: '100%', borderRadius: 8, maxHeight: 420 }} />
+          <video controls src={videoUrl} style={{ width: '100%', borderRadius: 8, maxHeight: 420 }} />
         </div>
       )}
 
