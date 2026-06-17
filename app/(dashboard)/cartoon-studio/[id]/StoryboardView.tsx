@@ -3,6 +3,11 @@
 import { useState, useCallback } from 'react'
 import Link from 'next/link'
 
+interface DialogueLine {
+  speaker: string
+  text: string
+}
+
 interface StoryScene {
   id: string
   scene_number: number
@@ -12,6 +17,7 @@ interface StoryScene {
   image_url: string | null
   image_status: 'pending' | 'generating' | 'completed' | 'failed'
   duration_seconds: number
+  dialogue_json: DialogueLine[] | null
 }
 
 interface StoryCharacter {
@@ -30,6 +36,8 @@ interface Story {
   status: string
   scene_count: number
   video_url: string | null
+  voice_map: Record<string, string> | null
+  movie_mode: string | null
 }
 
 interface Props {
@@ -38,12 +46,14 @@ interface Props {
   scenes: StoryScene[]
 }
 
+type MovieMode = 'standard' | 'ai_dialogue'
+
 const STATUS_STYLE: Record<string, { bg: string; border: string; color: string }> = {
-  completed:        { bg: '#14532d', border: '#22c55e', color: '#86efac' },
-  images_ready:     { bg: '#1e3a5f', border: '#3b82f6', color: '#93c5fd' },
-  generating_images:{ bg: '#312e81', border: '#6366f1', color: '#a5b4fc' },
-  failed:           { bg: '#450a0a', border: '#ef4444', color: '#fca5a5' },
-  draft:            { bg: '#1e293b', border: '#334155', color: '#94a3b8' },
+  completed:         { bg: '#14532d', border: '#22c55e', color: '#86efac' },
+  images_ready:      { bg: '#1e3a5f', border: '#3b82f6', color: '#93c5fd' },
+  generating_images: { bg: '#312e81', border: '#6366f1', color: '#a5b4fc' },
+  failed:            { bg: '#450a0a', border: '#ef4444', color: '#fca5a5' },
+  draft:             { bg: '#1e293b', border: '#334155', color: '#94a3b8' },
 }
 
 export function StoryboardView({ story, characters, scenes: initialScenes }: Props) {
@@ -51,15 +61,79 @@ export function StoryboardView({ story, characters, scenes: initialScenes }: Pro
   const [generating, setGenerating] = useState(false)
   const [progress, setProgress]     = useState({ pct: 0, message: '' })
   const [error, setError]           = useState('')
+
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false)
   const [videoProgress, setVideoProgress]         = useState({ pct: 0, message: '' })
   const [videoError, setVideoError]               = useState('')
   const [videoUrl, setVideoUrl]                   = useState<string | null>(story.video_url)
 
-  const pendingCount = scenes.filter(s => s.image_status !== 'completed').length
-  const allDone      = pendingCount === 0
-  const st           = STATUS_STYLE[story.status] ?? STATUS_STYLE.draft
+  const [movieMode, setMovieMode]         = useState<MovieMode>('standard')
+  const [isWritingDialogue, setIsWritingDialogue] = useState(false)
+  const [dialogueError, setDialogueError]         = useState('')
 
+  const pendingCount   = scenes.filter(s => s.image_status !== 'completed').length
+  const allDone        = pendingCount === 0
+  const dialogueWritten = scenes.some(s => Array.isArray(s.dialogue_json) && s.dialogue_json.length > 0)
+  const st             = STATUS_STYLE[story.status] ?? STATUS_STYLE.draft
+
+  // ── Shared SSE video reader ────────────────────────────────────────────────
+  const streamVideoSSE = useCallback(async (endpoint: string, body: object) => {
+    setIsGeneratingVideo(true)
+    setVideoError('')
+    setVideoProgress({ pct: 0, message: 'Starting...' })
+
+    try {
+      const res = await fetch(endpoint, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(body),
+      })
+
+      if (!res.ok || !res.body) {
+        const json = await res.json().catch(() => ({}))
+        setVideoError((json as { error?: string }).error ?? `HTTP ${res.status}`)
+        setIsGeneratingVideo(false)
+        return
+      }
+
+      const reader = res.body.getReader()
+      const dec    = new TextDecoder()
+      let buf      = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buf += dec.decode(value, { stream: true })
+        const lines = buf.split('\n')
+        buf = lines.pop() ?? ''
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          try {
+            const evt = JSON.parse(line.slice(6)) as Record<string, unknown>
+            if (evt.type === 'start') {
+              setVideoProgress({ pct: 0, message: `Processing ${evt.total_scenes as number} scenes...` })
+            } else if (evt.type === 'progress') {
+              setVideoProgress({ pct: (evt.pct as number) ?? 0, message: (evt.message as string) ?? '' })
+            } else if (evt.type === 'done') {
+              setVideoUrl(evt.video_url as string)
+              setVideoProgress({ pct: 100, message: 'Movie ready!' })
+              setIsGeneratingVideo(false)
+            } else if (evt.type === 'error') {
+              setVideoError((evt.error as string) ?? 'Video generation failed')
+              setIsGeneratingVideo(false)
+            }
+          } catch {}
+        }
+      }
+      setIsGeneratingVideo(false)
+    } catch (err) {
+      setVideoError(err instanceof Error ? err.message : 'Video generation failed')
+      setIsGeneratingVideo(false)
+    }
+  }, [])
+
+  // ── Generate scene images ──────────────────────────────────────────────────
   const handleGenerateImages = useCallback(async () => {
     setGenerating(true)
     setError('')
@@ -119,7 +193,6 @@ export function StoryboardView({ story, characters, scenes: initialScenes }: Pro
           } catch {}
         }
       }
-      // Stream closed — ensure spinner stops even if 'done' event was not received
       setGenerating(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Generation failed')
@@ -127,62 +200,52 @@ export function StoryboardView({ story, characters, scenes: initialScenes }: Pro
     }
   }, [story.id])
 
-  const handleGenerateVideo = useCallback(async () => {
-    setIsGeneratingVideo(true)
-    setVideoError('')
-    setVideoProgress({ pct: 0, message: 'Starting video generation...' })
+  // ── Standard video generation ──────────────────────────────────────────────
+  const handleGenerateVideo = useCallback(() =>
+    streamVideoSSE('/api/cartoon/generate-video', { story_id: story.id }),
+  [story.id, streamVideoSSE])
+
+  // ── AI Dialogue — write dialogue ───────────────────────────────────────────
+  const handleWriteDialogue = useCallback(async () => {
+    setIsWritingDialogue(true)
+    setDialogueError('')
 
     try {
-      const res = await fetch('/api/cartoon/generate-video', {
+      const res = await fetch('/api/cartoon/write-dialogue', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ story_id: story.id }),
       })
 
-      if (!res.ok || !res.body) {
-        const json = await res.json().catch(() => ({}))
-        setVideoError((json as { error?: string }).error ?? `HTTP ${res.status}`)
-        setIsGeneratingVideo(false)
+      const json = await res.json()
+
+      if (!res.ok) {
+        setDialogueError((json as { error?: string }).error ?? `HTTP ${res.status}`)
+        setIsWritingDialogue(false)
         return
       }
 
-      const reader = res.body.getReader()
-      const dec    = new TextDecoder()
-      let buf      = ''
+      // Merge dialogue_json back into scenes state
+      const genMap = new Map(
+        ((json as { scenes: { scene_number: number; dialogue: DialogueLine[] }[] }).scenes ?? [])
+          .map(s => [s.scene_number, s.dialogue])
+      )
+      setScenes(prev => prev.map(s => ({
+        ...s,
+        dialogue_json: genMap.get(s.scene_number) ?? s.dialogue_json,
+      })))
 
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        buf += dec.decode(value, { stream: true })
-        const lines = buf.split('\n')
-        buf = lines.pop() ?? ''
-
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue
-          try {
-            const evt = JSON.parse(line.slice(6)) as Record<string, unknown>
-            if (evt.type === 'start') {
-              setVideoProgress({ pct: 0, message: `Generating video for ${evt.total_scenes as number} scenes...` })
-            } else if (evt.type === 'progress') {
-              setVideoProgress({ pct: (evt.pct as number) ?? 0, message: (evt.message as string) ?? '' })
-            } else if (evt.type === 'done') {
-              setVideoUrl(evt.video_url as string)
-              setVideoProgress({ pct: 100, message: 'Video ready!' })
-              setIsGeneratingVideo(false)
-            } else if (evt.type === 'error') {
-              setVideoError((evt.error as string) ?? 'Video generation failed')
-              setIsGeneratingVideo(false)
-            }
-          } catch {}
-        }
-      }
-      // Stream closed — ensure spinner stops even if 'done' was not received
-      setIsGeneratingVideo(false)
     } catch (err) {
-      setVideoError(err instanceof Error ? err.message : 'Video generation failed')
-      setIsGeneratingVideo(false)
+      setDialogueError(err instanceof Error ? err.message : 'Write dialogue failed')
+    } finally {
+      setIsWritingDialogue(false)
     }
   }, [story.id])
+
+  // ── AI Dialogue — generate dialogue video ─────────────────────────────────
+  const handleGenerateDialogueVideo = useCallback(() =>
+    streamVideoSSE('/api/cartoon/generate-dialogue-video', { story_id: story.id }),
+  [story.id, streamVideoSSE])
 
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto', padding: '24px 16px', color: '#fff' }}>
@@ -218,7 +281,7 @@ export function StoryboardView({ story, characters, scenes: initialScenes }: Pro
       {/* Characters */}
       {characters.length > 0 && (
         <div style={{ marginBottom: 24 }}>
-          <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 10, color: '#cbd5e1' }}>👥 Characters</h3>
+          <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 10, color: '#cbd5e1' }}>Characters</h3>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             {characters.map(c => (
               <div key={c.id} style={{
@@ -286,7 +349,7 @@ export function StoryboardView({ story, characters, scenes: initialScenes }: Pro
         </div>
       )}
 
-      {/* Completion status + Generate Video */}
+      {/* Completion banner + mode selector + video actions */}
       {allDone && (
         <>
           <div style={{
@@ -298,8 +361,35 @@ export function StoryboardView({ story, characters, scenes: initialScenes }: Pro
           </div>
 
           {!videoUrl && (
-            <div style={{ marginBottom: 24 }}>
-              {!isGeneratingVideo ? (
+            <div style={{ marginBottom: 28 }}>
+              {/* Mode selector */}
+              {!isGeneratingVideo && (
+                <div style={{ marginBottom: 16 }}>
+                  <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: 10 }}>Choose your movie type:</p>
+                  <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                    <ModeCard
+                      selected={movieMode === 'standard'}
+                      onSelect={() => setMovieMode('standard')}
+                      title="Standard Movie"
+                      description="Cinematic narration with AI voiceover"
+                      credits={10}
+                      color="#0891b2"
+                    />
+                    <ModeCard
+                      selected={movieMode === 'ai_dialogue'}
+                      onSelect={() => setMovieMode('ai_dialogue')}
+                      title="AI Dialogue Movie"
+                      description="Characters speak in their own voices"
+                      credits={dialogueWritten ? 10 : 25}
+                      badge={dialogueWritten ? 'Dialogue ready' : '15 write + 10 render'}
+                      color="#7c3aed"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Standard Movie action */}
+              {movieMode === 'standard' && !isGeneratingVideo && (
                 <button
                   onClick={handleGenerateVideo}
                   style={{
@@ -308,27 +398,93 @@ export function StoryboardView({ story, characters, scenes: initialScenes }: Pro
                     color: '#fff', border: 'none', cursor: 'pointer',
                   }}
                 >
-                  🎬 Generate Video
+                  🎬 Generate Standard Movie (10 credits)
                 </button>
-              ) : (
+              )}
+
+              {/* AI Dialogue Movie actions */}
+              {movieMode === 'ai_dialogue' && !isGeneratingVideo && (
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                  {!dialogueWritten ? (
+                    <button
+                      onClick={handleWriteDialogue}
+                      disabled={isWritingDialogue}
+                      style={{
+                        padding: '12px 28px', borderRadius: 8, fontSize: 15, fontWeight: 700,
+                        background: isWritingDialogue
+                          ? '#374151'
+                          : 'linear-gradient(135deg,#6d28d9,#7c3aed)',
+                        color: '#fff', border: 'none',
+                        cursor: isWritingDialogue ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      {isWritingDialogue ? '✍️ Writing dialogue...' : '✍️ Write Dialogue (15 credits)'}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleGenerateDialogueVideo}
+                      style={{
+                        padding: '12px 28px', borderRadius: 8, fontSize: 15, fontWeight: 700,
+                        background: 'linear-gradient(135deg,#6d28d9,#7c3aed)',
+                        color: '#fff', border: 'none', cursor: 'pointer',
+                      }}
+                    >
+                      🎬 Generate Dialogue Movie (10 credits)
+                    </button>
+                  )}
+                  {dialogueWritten && (
+                    <button
+                      onClick={handleWriteDialogue}
+                      disabled={isWritingDialogue}
+                      style={{
+                        padding: '10px 18px', borderRadius: 8, fontSize: 13,
+                        background: 'transparent', border: '1px solid #6d28d9',
+                        color: '#a78bfa', cursor: isWritingDialogue ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      {isWritingDialogue ? 'Rewriting...' : '↺ Rewrite Dialogue (15 credits)'}
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Dialogue error */}
+              {dialogueError && (
+                <div style={{
+                  marginTop: 10, padding: '10px 14px', borderRadius: 8,
+                  background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
+                  color: '#fca5a5', fontSize: 13,
+                }}>
+                  {dialogueError}
+                </div>
+              )}
+
+              {/* Video generation progress */}
+              {isGeneratingVideo && (
                 <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, padding: 16 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
                     <span style={{ fontSize: 16 }}>🎬</span>
                     <span style={{ fontSize: 14, fontWeight: 600 }}>Assembling movie...</span>
-                    <span style={{ marginLeft: 'auto', fontSize: 13, color: '#0891b2', fontWeight: 700 }}>
+                    <span style={{
+                      marginLeft: 'auto', fontSize: 13, fontWeight: 700,
+                      color: movieMode === 'ai_dialogue' ? '#a78bfa' : '#0891b2',
+                    }}>
                       {videoProgress.pct}%
                     </span>
                   </div>
                   <div style={{ height: 5, background: '#0f172a', borderRadius: 3, overflow: 'hidden' }}>
                     <div style={{
                       height: '100%', width: `${videoProgress.pct}%`,
-                      background: 'linear-gradient(90deg,#0f766e,#0891b2)',
+                      background: movieMode === 'ai_dialogue'
+                        ? 'linear-gradient(90deg,#6d28d9,#7c3aed)'
+                        : 'linear-gradient(90deg,#0f766e,#0891b2)',
                       transition: 'width 0.4s ease', borderRadius: 3,
                     }} />
                   </div>
                   <p style={{ fontSize: 12, color: '#94a3b8', margin: '8px 0 0' }}>{videoProgress.message}</p>
                 </div>
               )}
+
               {videoError && (
                 <div style={{
                   marginTop: 10, padding: '10px 14px', borderRadius: 8,
@@ -343,11 +499,11 @@ export function StoryboardView({ story, characters, scenes: initialScenes }: Pro
         </>
       )}
 
-      {/* Video player — renders as soon as videoUrl arrives (no page refresh needed) */}
+      {/* Video player */}
       {videoUrl && (
         <div style={{ marginBottom: 28, background: '#1e293b', borderRadius: 12, padding: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <h3 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>🎬 Generated Video</h3>
+            <h3 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>🎬 Generated Movie</h3>
             <a
               href={videoUrl}
               download
@@ -366,14 +522,14 @@ export function StoryboardView({ story, characters, scenes: initialScenes }: Pro
         </div>
       )}
 
-      {/* Scenes Grid */}
+      {/* Storyboard grid */}
       <div>
         <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#cbd5e1' }}>
           🎬 Storyboard — {scenes.length} scenes
         </h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
           {scenes.map(scene => (
-            <SceneCard key={scene.id} scene={scene} />
+            <SceneCard key={scene.id} scene={scene} showDialogue={movieMode === 'ai_dialogue'} />
           ))}
         </div>
       </div>
@@ -381,7 +537,47 @@ export function StoryboardView({ story, characters, scenes: initialScenes }: Pro
   )
 }
 
-function SceneCard({ scene }: { scene: StoryScene }) {
+// ── Mode selector card ─────────────────────────────────────────────────────────
+function ModeCard({
+  selected, onSelect, title, description, credits, badge, color,
+}: {
+  selected: boolean
+  onSelect: () => void
+  title: string
+  description: string
+  credits: number
+  badge?: string
+  color: string
+}) {
+  return (
+    <div
+      onClick={onSelect}
+      style={{
+        padding: '14px 18px', borderRadius: 10, cursor: 'pointer', minWidth: 200,
+        background: selected ? `${color}22` : '#1e293b',
+        border: `2px solid ${selected ? color : '#334155'}`,
+        transition: 'border-color 0.15s ease',
+      }}
+    >
+      <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{title}</div>
+      <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 8 }}>{description}</div>
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+        <span style={{
+          fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20,
+          background: selected ? color : '#334155', color: '#fff',
+        }}>
+          {credits} credits
+        </span>
+        {badge && (
+          <span style={{ fontSize: 10, color: '#4ade80' }}>{badge}</span>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── Scene card ─────────────────────────────────────────────────────────────────
+function SceneCard({ scene, showDialogue }: { scene: StoryScene; showDialogue: boolean }) {
   const hasImage = scene.image_status === 'completed' && scene.image_url
 
   return (
@@ -441,6 +637,23 @@ function SceneCard({ scene }: { scene: StoryScene }) {
         <div style={{ marginTop: 5, fontSize: 10, color: '#475569' }}>
           {scene.duration_seconds}s · {scene.image_status}
         </div>
+
+        {/* Dialogue preview */}
+        {showDialogue && scene.dialogue_json && scene.dialogue_json.length > 0 && (
+          <div style={{ marginTop: 8, borderTop: '1px solid #1e3a5f', paddingTop: 8 }}>
+            {scene.dialogue_json.slice(0, 3).map((line, i) => (
+              <div key={i} style={{ marginBottom: 4 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: '#818cf8' }}>{line.speaker}: </span>
+                <span style={{ fontSize: 10, color: '#94a3b8' }}>
+                  {line.text.slice(0, 60)}{line.text.length > 60 ? '...' : ''}
+                </span>
+              </div>
+            ))}
+            {scene.dialogue_json.length > 3 && (
+              <div style={{ fontSize: 10, color: '#475569' }}>+{scene.dialogue_json.length - 3} more lines</div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )

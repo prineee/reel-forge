@@ -3,9 +3,10 @@
 require('dotenv').config()
 
 const express       = require('express')
-const reelRoutes    = require('./routes/reelRoutes')
-const cartoonRoutes = require('./routes/cartoonRoutes')
-const lipSyncRoutes = require('./routes/lipSyncRoutes')
+const reelRoutes            = require('./routes/reelRoutes')
+const cartoonRoutes         = require('./routes/cartoonRoutes')
+const cartoonDialogueRoutes = require('./routes/cartoonDialogueRoutes')
+const lipSyncRoutes         = require('./routes/lipSyncRoutes')
 const { handleTTSSynthesize } = require('./services/tts')
 
 const app = express()
@@ -51,6 +52,7 @@ app.post('/api/tts/synthesize', handleTTSSynthesize)
 // ── Routes ────────────────────────────────────────────────────────────────────
 app.use('/', reelRoutes)
 app.use('/', cartoonRoutes)
+app.use('/', cartoonDialogueRoutes)
 app.use('/', lipSyncRoutes)
 
 // ── 404 / error fallbacks ─────────────────────────────────────────────────────

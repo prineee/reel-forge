@@ -1,5 +1,6 @@
-// FILE: app/api/cartoon/generate-video/route.ts
-// Proxies SSE from Railway worker to the browser for cartoon video assembly
+// FILE: app/api/cartoon/generate-dialogue-video/route.ts
+// AI Dialogue Movie — Phase 1 render step (10 credits)
+// Proxies SSE from Railway worker to the browser for dialogue video assembly.
 
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
@@ -14,13 +15,13 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { story_id, voice_id, caption_style } = await request.json()
+  const { story_id } = await request.json().catch(() => ({}))
   if (!story_id) return NextResponse.json({ error: 'story_id required' }, { status: 400 })
 
   // Verify ownership
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: story } = await (supabase.from('cartoon_stories') as any)
-    .select('id, status')
+    .select('id, status, voice_map')
     .eq('id', story_id)
     .eq('user_id', user.id)
     .single()
@@ -42,6 +43,7 @@ export async function POST(request: Request) {
     )
   }
 
+  // Deduct credits upfront (render is expensive)
   const admin = createAdminClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error: deductError } = await (admin.from('users') as any)
@@ -52,15 +54,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Failed to deduct credits' }, { status: 500 })
   }
 
-  // Fetch all scenes — worker needs image_url, narration, duration_seconds, etc.
+  // Fetch scenes (with dialogue_json) + characters
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: scenes } = await (supabase.from('cartoon_scenes') as any)
     .select('*')
     .eq('story_id', story_id)
     .order('scene_number', { ascending: true })
 
-  if (!scenes || scenes.length === 0) {
+  if (!scenes?.length) {
     return NextResponse.json({ error: 'No scenes found' }, { status: 404 })
   }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: characters } = await (supabase.from('cartoon_characters') as any)
+    .select('name, role, description, personality')
+    .eq('story_id', story_id)
 
   const workerUrl = (
     process.env.NEXT_PUBLIC_WORKER_URL || 'https://reel-forge-production.up.railway.app'
@@ -76,14 +84,14 @@ export async function POST(request: Request) {
       }
 
       try {
-        const workerRes = await fetch(`${workerUrl}/api/cartoon/generate-video`, {
+        const workerRes = await fetch(`${workerUrl}/api/cartoon/generate-dialogue-video`, {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
           body:    JSON.stringify({
             story_id,
             scenes,
-            voice_id:      voice_id      || 'tara',
-            caption_style: caption_style || null,
+            voice_map:  story.voice_map || {},
+            characters: characters || [],
           }),
         })
 
