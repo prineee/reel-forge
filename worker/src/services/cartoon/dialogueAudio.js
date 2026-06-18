@@ -103,4 +103,32 @@ async function generateDialogueAudio(dialogueLines, voiceMap, outputPath, tempDi
   return outputPath
 }
 
-module.exports = { generateDialogueAudio }
+/**
+ * Per-scene wrapper around generateDialogueAudio. Produces ONE MP3 for a single
+ * scene's dialogue lines (the per-line TTS + concat logic is unchanged). Returns
+ * the output path, or null when the scene has no usable dialogue — letting the
+ * caller fall back to a silent track so the scene still renders.
+ *
+ * @param {Array<{speaker: string, text: string}>} dialogueLines  This scene only
+ * @param {Record<string, string>} voiceMap
+ * @param {string} outputPath   Destination MP3 for this scene (e.g. scene_001.mp3)
+ * @param {string} tempDir      Scene-specific temp dir (avoids per-line collisions)
+ * @param {string} label        Log label, e.g. "scene_001"
+ * @returns {Promise<string|null>}
+ */
+async function generateSceneAudio(dialogueLines, voiceMap, outputPath, tempDir, label = 'scene') {
+  const lines = (dialogueLines || []).filter(l => l && (l.text || '').trim())
+  if (lines.length === 0) {
+    console.log(`[dialogueAudio] ${label}: no dialogue lines — silent scene`)
+    return null
+  }
+  try {
+    await generateDialogueAudio(lines, voiceMap, outputPath, tempDir)
+    return outputPath
+  } catch (err) {
+    console.warn(`[dialogueAudio] ${label}: audio generation failed (${err.message}) — silent scene`)
+    return null
+  }
+}
+
+module.exports = { generateDialogueAudio, generateSceneAudio }
