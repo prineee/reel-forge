@@ -6,10 +6,15 @@ import {
   DURATION_CONFIG,
   STYLE_PROMPTS,
   MOTION_SEQUENCE,
+  MODE_MULTIPLIER,
   type GenerateStoryRequest,
   type GeneratedCharacter,
   type GeneratedScene,
+  type MovieMode,
 } from '@/lib/cartoon/types'
+import { buildVoiceMap } from '@/lib/cartoon/voiceCasting'
+
+const MOVIE_MODES: MovieMode[] = ['standard', 'dialogue', 'talking_character']
 
 // Credit cost per duration tier — matches frontend DURATIONS constant
 const CREDIT_COSTS: Record<number, number> = {
@@ -39,15 +44,17 @@ export async function POST(req: Request) {
     visual_style   = 'anime',
     duration_minutes = 1,
     voice_id       = 'tara',
+    movie_mode     = 'standard',
   } = body
 
   if (!prompt?.trim()) {
     return NextResponse.json({ error: 'prompt is required' }, { status: 400 })
   }
 
-  const durMins = ([1, 3, 5, 10] as number[]).includes(duration_minutes) ? duration_minutes : 1
-  const config  = DURATION_CONFIG[durMins]
-  const cost    = CREDIT_COSTS[durMins]
+  const durMins   = ([1, 3, 5, 10] as number[]).includes(duration_minutes) ? duration_minutes : 1
+  const config    = DURATION_CONFIG[durMins]
+  const movieMode = MOVIE_MODES.includes(movie_mode) ? movie_mode : 'standard'
+  const cost      = CREDIT_COSTS[durMins] * MODE_MULTIPLIER[movieMode]
 
   // ── Credit check ────────────────────────────────────────────────────────────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -84,18 +91,27 @@ export async function POST(req: Request) {
 
   const groq       = new Groq({ apiKey: groqApiKey })
   const styleGuide = STYLE_PROMPTS[visual_style] ?? STYLE_PROMPTS['anime']
-  // Per-tier output budget: input (~250 tokens) + max_tokens must stay under 12 000 TPM
-  const MAX_TOKENS: Record<number, number> = { 1: 3500, 3: 7500, 5: 9500, 10: 11500 }
-  const maxTokens  = MAX_TOKENS[durMins] ?? 3500
+  // Per-tier output budget: input (~250 tokens) + max_tokens must stay under 12 000 TPM.
+  // Bumped slightly vs. the narration-only budget to fit the per-scene dialogue array.
+  const MAX_TOKENS: Record<number, number> = { 1: 4500, 3: 9000, 5: 11000, 10: 13500 }
+  const maxTokens  = MAX_TOKENS[durMins] ?? 4500
+
+  // Phase 2.7 — budget dialogue length to each scene's runtime slice so spoken
+  // audio fits the selected duration (1min=60s … 10min=600s). ~2.3 words/sec
+  // speaking rate, kept just under the slice to leave room for natural pacing
+  // and a short silent tail. The render layer guarantees the exact total; this
+  // budget keeps that guarantee from relying on silence padding or time-compression.
+  const sceneSeconds       = Math.round((durMins * 60) / config.scenes)
+  const dialogueWordBudget = Math.max(Math.round(sceneSeconds * 2.3 * 0.9), 6)
 
   const userPrompt = `${durMins}-min ${genre} cartoon. Idea: "${prompt.trim()}"
 Style: ${visual_style} — ${styleGuide}
 Scenes: exactly ${config.scenes}, ~${config.wordsPerScene} words narration each.
 
 Return JSON with these exact keys:
-{"title":string,"storyline":string,"characters":[{"name":string,"role":"main"|"supporting"|"villain"|"narrator","description":string,"visualPrompt":string,"personality":string}],"scenes":[{"number":int,"title":string,"narration":string,"visualDescription":string,"visualKeywords":[3 strings],"imagePrompt":string,"charactersInScene":[strings],"motionEffect":"zoom_in"|"zoom_out"|"pan_left"|"pan_right"|"ken_burns"|"static","duration_seconds":int}]}
+{"title":string,"storyline":string,"characters":[{"name":string,"role":"main"|"supporting"|"villain"|"narrator","description":string,"visualPrompt":string,"personality":string}],"scenes":[{"number":int,"title":string,"narration":string,"dialogue":[{"speaker":string,"text":string}],"visualDescription":string,"visualKeywords":[3 strings],"imagePrompt":string,"charactersInScene":[strings],"motionEffect":"zoom_in"|"zoom_out"|"pan_left"|"pan_right"|"ken_burns"|"static","duration_seconds":int}]}
 
-Rules: 2-4 characters. Exactly ${config.scenes} scenes numbered 1-${config.scenes}. Each imagePrompt must include "${styleGuide}". Build a complete arc: setup → conflict → climax → resolution.`
+Rules: 2-4 characters. Exactly ${config.scenes} scenes numbered 1-${config.scenes}. Each imagePrompt must include "${styleGuide}". Build a complete arc: setup → conflict → climax → resolution. Every scene's "dialogue" array has 1-3 short lines totaling about ${dialogueWordBudget} words (so the spoken audio fits ~${sceneSeconds}s); each "speaker" must exactly match a character name above or "Narrator".`
 
   try {
     const completion = await groq.chat.completions.create({
@@ -154,6 +170,8 @@ Rules: 2-4 characters. Exactly ${config.scenes} scenes numbered 1-${config.scene
       )
     }
 
+    const voiceMap = buildVoiceMap(generated.characters || [])
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: story, error: storyError } = await (supabase.from('cartoon_stories') as any)
       .insert({
@@ -164,6 +182,8 @@ Rules: 2-4 characters. Exactly ${config.scenes} scenes numbered 1-${config.scene
         genre,
         visual_style,
         voice_id,
+        movie_mode:       movieMode,
+        voice_map:        voiceMap,
         status:           'draft',
         scene_count:      generated.scenes.length,
         credits_used:     cost,
@@ -204,6 +224,7 @@ Rules: 2-4 characters. Exactly ${config.scenes} scenes numbered 1-${config.scene
           scene_number:        s.number ?? i + 1,
           title:               s.title,
           narration:           s.narration,
+          dialogue_json:       Array.isArray(s.dialogue) ? s.dialogue : [],
           image_prompt:        s.imagePrompt,
           visual_description:  s.visualDescription,
           visual_keywords:     Array.isArray(s.visualKeywords) ? s.visualKeywords : [],
@@ -216,7 +237,7 @@ Rules: 2-4 characters. Exactly ${config.scenes} scenes numbered 1-${config.scene
       )
     }
 
-    console.log(`[cartoon/generate-story] Created story ${storyId} — ${generated.scenes.length} scenes — ${cost} credits`)
+    console.log(`[cartoon/generate-story] Created story ${storyId} — ${generated.scenes.length} scenes — ${cost} credits — mode=${movieMode}`)
 
     return NextResponse.json({
       success:          true,
@@ -227,6 +248,7 @@ Rules: 2-4 characters. Exactly ${config.scenes} scenes numbered 1-${config.scene
       visual_style,
       scene_count:      generated.scenes.length,
       duration_minutes: durMins,
+      movie_mode:       movieMode,
       characters:       generated.characters,
       scenes:           generated.scenes,
     })
