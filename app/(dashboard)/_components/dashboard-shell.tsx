@@ -18,6 +18,11 @@ const NAV_ITEMS = [
       { label: 'Dashboard',        href: '/dashboard',         icon: LayoutDashboard },
       { label: 'Create Reel',      href: '/create-reel',       icon: Video           },
       { label: 'Movie Studio',     href: '/movie-studio',      icon: Film            },
+      {
+  label: 'Cartoon Studio',
+  href: '/cartoon-studio',
+  icon: Palette,
+},
       { label: 'Series Studio',    href: '/series-studio',     icon: Tv              },
       { label: 'Characters',       href: '/characters',        icon: User            },
       { label: 'Avatar Studio',    href: '/avatar-studio',     icon: Users           },
