@@ -18,6 +18,7 @@ const { assignShot }         = require('../services/cartoon/cameraDirector')
 const { castVoices }         = require('../services/cartoon/voiceCasting')
 const { generateSceneAudio } = require('../services/cartoon/dialogueAudio')
 const { probeClip }          = require('../services/ffmpegUtils')
+const { resolveMusicTrack, buildMixFilter } = require('../services/cartoon/backgroundMusic')
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -85,7 +86,7 @@ function muxSceneAudio(videoPath, audioPath, outPath, clipDur, speed = 1) {
 
 // ── POST /api/cartoon/generate-dialogue-video (SSE) ──────────────────────────
 router.post('/api/cartoon/generate-dialogue-video', async (req, res) => {
-  const { story_id, scenes, voice_map, characters } = req.body
+  const { story_id, scenes, voice_map, characters, genre } = req.body
 
   if (!story_id || !scenes || !scenes.length) {
     return res.status(400).json({ error: 'story_id and scenes are required' })
@@ -273,18 +274,39 @@ router.post('/api/cartoon/generate-dialogue-video', async (req, res) => {
     const outputPath = path.join(jobDir, 'cartoon_dialogue_final.mp4')
     const { spawn }  = require('child_process')
 
+    // ── Background music (Phase 2.8) — optional, genre-selected, mixed under
+    // the per-scene dialogue (input 0's audio) with 2s fades. Missing track →
+    // render normally with no music.
+    const music = resolveMusicTrack(genre)
+    if (music) console.log(`[dlg-video] Background music: ${music.mood} (${path.basename(music.path)})`)
+
     await new Promise((resolve, reject) => {
-      const args = [
-        '-y',
-        '-f',       'concat', '-safe', '0', '-i', concatPath,
-        '-c:v',     'libx264', '-preset', 'veryfast', '-crf', '23',
-        '-pix_fmt', 'yuv420p', '-r', '30', '-vsync', 'cfr',
-        '-c:a',     'aac', '-b:a', '128k', '-ar', '44100',
-        '-t',       totalSecs.toFixed(3),
-        '-b:v',     '600k', '-maxrate', '900k', '-bufsize', '1800k',
-        '-movflags', '+faststart',
-        outputPath,
-      ]
+      const args = music
+        ? [
+            '-y',
+            '-f',       'concat', '-safe', '0', '-i', concatPath,
+            '-stream_loop', '-1', '-i', music.path,
+            '-filter_complex', buildMixFilter(1, '0:a', totalSecs),
+            '-map',     '0:v:0', '-map', '[aout]',
+            '-c:v',     'libx264', '-preset', 'veryfast', '-crf', '23',
+            '-pix_fmt', 'yuv420p', '-r', '30', '-vsync', 'cfr',
+            '-c:a',     'aac', '-b:a', '128k', '-ar', '44100',
+            '-t',       totalSecs.toFixed(3),
+            '-b:v',     '600k', '-maxrate', '900k', '-bufsize', '1800k',
+            '-movflags', '+faststart',
+            outputPath,
+          ]
+        : [
+            '-y',
+            '-f',       'concat', '-safe', '0', '-i', concatPath,
+            '-c:v',     'libx264', '-preset', 'veryfast', '-crf', '23',
+            '-pix_fmt', 'yuv420p', '-r', '30', '-vsync', 'cfr',
+            '-c:a',     'aac', '-b:a', '128k', '-ar', '44100',
+            '-t',       totalSecs.toFixed(3),
+            '-b:v',     '600k', '-maxrate', '900k', '-bufsize', '1800k',
+            '-movflags', '+faststart',
+            outputPath,
+          ]
       const proc = spawn(FFMPEG_BIN, args, { stdio: ['ignore', 'ignore', 'pipe'] })
       let stderr   = ''
       proc.stderr.on('data', d => { stderr += d.toString() })

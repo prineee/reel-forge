@@ -21,7 +21,7 @@ export async function POST(request: Request) {
   // Verify ownership
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: story } = await (supabase.from('cartoon_stories') as any)
-    .select('id, status, voice_map')
+    .select('id, status, voice_map, genre')
     .eq('id', story_id)
     .eq('user_id', user.id)
     .single()
@@ -92,6 +92,7 @@ export async function POST(request: Request) {
             scenes,
             voice_map:  story.voice_map || {},
             characters: characters || [],
+            genre:      story.genre    || null,
           }),
         })
 

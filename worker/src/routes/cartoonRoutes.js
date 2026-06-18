@@ -15,6 +15,7 @@ const { createClient } = require('@supabase/supabase-js')
 const { generateSceneImage }      = require('../services/cartoon/imageGenerator')
 const { convertImageToVideoClip, generateColorClip } = require('../services/cartoon/motionEffect')
 const { assignShot }              = require('../services/cartoon/cameraDirector')
+const { resolveMusicTrack, buildMixFilter } = require('../services/cartoon/backgroundMusic')
 
 const WebSocket = require('ws')
 
@@ -187,7 +188,7 @@ router.post('/api/cartoon/regenerate-scene', async (req, res) => {
 
 // ── POST /api/cartoon/generate-video (SSE) ────────────────────────────────────
 router.post('/api/cartoon/generate-video', async (req, res) => {
-  const { story_id, scenes, voice_id, caption_style } = req.body
+  const { story_id, scenes, voice_id, caption_style, genre } = req.body
 
   if (!story_id || !scenes || !scenes.length) {
     return res.status(400).json({ error: 'story_id and scenes are required' })
@@ -318,20 +319,42 @@ router.post('/api/cartoon/generate-video', async (req, res) => {
     const outputPath = path.join(jobDir, 'cartoon_final.mp4')
     const { spawn }  = require('child_process')
 
+    // ── Background music (Phase 2.8) — optional, genre-selected, mixed under
+    // narration with 2s fades. Missing track → render normally with no music.
+    const renderSecs = Math.ceil(totalSecs)
+    const music      = resolveMusicTrack(genre)
+    if (music) console.log(`[cartoon/video] Background music: ${music.mood} (${path.basename(music.path)})`)
+
     await new Promise((resolve, reject) => {
-      const args = [
-        '-y',
-        '-f',       'concat', '-safe', '0', '-i', concatPath,
-        '-i',       voicePath,
-        '-map',     '0:v:0', '-map', '1:a:0',
-        '-c:v',     'libx264', '-preset', 'veryfast', '-crf', '23',
-        '-pix_fmt', 'yuv420p', '-r', '30', '-vsync', 'cfr',
-        '-c:a',     'aac', '-b:a', '128k', '-ar', '44100',
-        '-t',       String(Math.ceil(totalSecs)),
-        '-b:v',     '600k', '-maxrate', '900k', '-bufsize', '1800k',
-        '-movflags', '+faststart',
-        outputPath,
-      ]
+      const args = music
+        ? [
+            '-y',
+            '-f',       'concat', '-safe', '0', '-i', concatPath,
+            '-i',       voicePath,
+            '-stream_loop', '-1', '-i', music.path,
+            '-filter_complex', buildMixFilter(2, '1:a', renderSecs),
+            '-map',     '0:v:0', '-map', '[aout]',
+            '-c:v',     'libx264', '-preset', 'veryfast', '-crf', '23',
+            '-pix_fmt', 'yuv420p', '-r', '30', '-vsync', 'cfr',
+            '-c:a',     'aac', '-b:a', '128k', '-ar', '44100',
+            '-t',       String(renderSecs),
+            '-b:v',     '600k', '-maxrate', '900k', '-bufsize', '1800k',
+            '-movflags', '+faststart',
+            outputPath,
+          ]
+        : [
+            '-y',
+            '-f',       'concat', '-safe', '0', '-i', concatPath,
+            '-i',       voicePath,
+            '-map',     '0:v:0', '-map', '1:a:0',
+            '-c:v',     'libx264', '-preset', 'veryfast', '-crf', '23',
+            '-pix_fmt', 'yuv420p', '-r', '30', '-vsync', 'cfr',
+            '-c:a',     'aac', '-b:a', '128k', '-ar', '44100',
+            '-t',       String(renderSecs),
+            '-b:v',     '600k', '-maxrate', '900k', '-bufsize', '1800k',
+            '-movflags', '+faststart',
+            outputPath,
+          ]
       const proc = spawn(FFMPEG_BIN, args, { stdio: ['ignore', 'ignore', 'pipe'] })
       let stderr = ''
       proc.stderr.on('data', d => { stderr += d.toString() })
