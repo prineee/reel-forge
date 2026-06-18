@@ -24,6 +24,21 @@ export type Genre =
   | 'thriller'
   | 'mystery'
 
+// ── Movie Mode ────────────────────────────────────────────────────────────────
+export type MovieMode = 'standard' | 'dialogue' | 'talking_character'
+
+export interface DialogueLine {
+  speaker: string
+  text:    string
+}
+
+// Credit multiplier applied to the base duration-tier cost in generate-story
+export const MODE_MULTIPLIER: Record<MovieMode, number> = {
+  standard:         1,
+  dialogue:         2,
+  talking_character: 1, // placeholder — no extra generation work yet
+}
+
 // ── Motion Effects ────────────────────────────────────────────────────────────
 export type MotionEffect =
   | 'zoom_in'
@@ -87,6 +102,8 @@ export interface CartoonStory {
   published_at:    string | null
   created_at:      string
   updated_at:      string
+  movie_mode:      MovieMode | null
+  voice_map:       Record<string, string> | null
 }
 
 export interface CartoonCharacter {
@@ -120,6 +137,7 @@ export interface CartoonScene {
   image_status:         ImageStatus
   generation_attempts:  number
   created_at:           string
+  dialogue_json:        DialogueLine[] | null
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -133,6 +151,7 @@ export interface GenerateStoryRequest {
   visual_style?:    VisualStyle    // default: anime
   duration_minutes?: number        // 1 | 3 | 5 | 10 — default: 1
   voice_id?:        string         // default: tara
+  movie_mode?:      MovieMode      // default: standard
 }
 
 // Scene as returned by Groq (before DB save)
@@ -146,6 +165,7 @@ export interface GeneratedScene {
   charactersInScene: string[]       // character names in this scene
   motionEffect:      MotionEffect
   duration_seconds:  number         // from word count / 2.5
+  dialogue:          DialogueLine[] // per-character lines for this scene
 }
 
 // Character as returned by Groq
@@ -166,6 +186,7 @@ export interface GenerateStoryResponse {
   visual_style: VisualStyle
   scene_count: number
   duration_minutes: number
+  movie_mode:  MovieMode
   characters:  GeneratedCharacter[]
   scenes:      GeneratedScene[]
 }
