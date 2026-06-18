@@ -1,5 +1,6 @@
 'use client'
-
+import { LogOut } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 import { useState } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
@@ -101,15 +102,42 @@ export function DashboardShell({ children, credits }: Props) {
     )
   }
 
-  const SidebarFooter = () => (
-    <div className="px-4 py-3 border-t border-surface-border shrink-0">
-      <Link href="/billing" className="flex items-center gap-2 text-xs text-gray-400 hover:text-white transition-colors">
+  const SidebarFooter = () => {
+  const supabase = createClient()
+
+  return (
+    <div className="px-4 py-3 border-t border-surface-border shrink-0 space-y-3">
+
+      <Link
+        href="/billing"
+        className="flex items-center gap-2 text-xs text-gray-400 hover:text-white transition-colors"
+      >
         <Zap className="w-3.5 h-3.5 text-yellow-400" />
         <span>Credits</span>
         <span className="ml-auto text-white font-semibold">{credits}</span>
       </Link>
+
+      <button
+        onClick={async () => {
+          const confirmed = window.confirm(
+            'Are you sure you want to logout?'
+          )
+
+          if (!confirmed) return
+
+          await supabase.auth.signOut()
+
+          window.location.href = '/login'
+        }}
+        className="flex items-center gap-2 w-full text-xs text-red-400 hover:text-red-300 transition-colors"
+      >
+        <LogOut className="w-3.5 h-3.5" />
+        <span>Logout</span>
+      </button>
+
     </div>
   )
+}
 
   const LogoBar = ({ withClose }: { withClose?: boolean }) => (
     <div className="flex items-center gap-2.5 px-4 py-4 border-b border-surface-border shrink-0">
