@@ -156,6 +156,28 @@ export default function SettingsPage() {
       {tab === 'security' && (
         <div className="space-y-4">
           <Card>
+  <CardHeader>
+    <CardTitle>Logout</CardTitle>
+  </CardHeader>
+
+  <CardContent>
+    <Button
+       onClick={async () => {
+        const confirmed = window.confirm(
+          'Are you sure you want to logout?'
+        )
+
+        if (!confirmed) return
+
+        await supabase.auth.signOut()
+        router.push('/login')
+      }}
+    >
+      Logout
+    </Button>
+  </CardContent>
+</Card>
+          <Card>
             <CardHeader><CardTitle>Change Password</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div>
