@@ -37,12 +37,12 @@ export default function JVZooPage() {
             Get Instant Access
           </h2>
 
-          {/* Replace this button with JVZoo Buy Button Code */}
-          <div id="jvzoo-buy-button">
-            JVZOO BUY BUTTON GOES HERE
-          </div>
-
-        </div>
+        <img src="https://i.jvzoo.com/0/444419/99" 
+        alt="JVZoo Tracking Pixel" 
+        width={1}
+         height={1} 
+         />
+                </div>
 
         <div className="mt-16 text-sm text-gray-400 leading-7">
 
