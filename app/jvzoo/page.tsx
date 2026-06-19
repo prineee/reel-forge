@@ -7,10 +7,33 @@ export default function JVZooPage() {
           ReelForge AI Movie Studio
         </h1>
 
-        <p className="text-xl text-gray-300 mb-10">
-          Create AI Movies, Cartoon Stories, Talking Character Videos,
-          Cinematic Films and Viral Content in Minutes.
-        </p>
+        <p className="text-xl text-gray-300 mb-10 max-w-4xl">
+  Create AI Movies, Cartoon Stories, Talking Character Videos and
+  Viral Marketing Content In Minutes — No Editing Skills Required.
+</p>
+<div className="flex flex-wrap gap-3 mb-12">
+
+  <span className="px-4 py-2 bg-purple-600 rounded-full text-sm">
+    ✓ Create Reels
+  </span>
+
+  <span className="px-4 py-2 bg-purple-600 rounded-full text-sm">
+    ✓ Cartoon Studio
+  </span>
+
+  <span className="px-4 py-2 bg-purple-600 rounded-full text-sm">
+    ✓ Talking Characters
+  </span>
+
+  <span className="px-4 py-2 bg-purple-600 rounded-full text-sm">
+    ✓ Marketing Studio
+  </span>
+
+  <span className="px-4 py-2 bg-purple-600 rounded-full text-sm">
+    ✓ Cloud Based
+  </span>
+
+</div>
 
         <div className="grid md:grid-cols-3 gap-6 mb-12">
           <div className="border border-gray-800 p-6 rounded-xl">
@@ -164,25 +187,38 @@ export default function JVZooPage() {
 
   <div className="grid md:grid-cols-3 gap-6">
     <img
-      src="/dashboard1.png"
+      src="/screenshots/dashboard1.png"
       alt="Dashboard"
       className="rounded-xl border border-gray-800"
     />
 
 ```
 <img
-  src="/dashboard2.png"
+  src="/screenshots/dashboard2.png"
   alt="Movie Studio"
   className="rounded-xl border border-gray-800"
 />
 
 <img
-  src="/dashboard3.png"
+  src="/screenshots/dashboard3.png"
   alt="Cartoon Studio"
   className="rounded-xl border border-gray-800"
 />
-```
-
+<img
+  src="/screenshots/dashboard4.png"
+  alt="Marketing Studio"
+  className="rounded-xl border border-gray-800"
+/>
+<img
+  src="/screenshots/dashboard5.png"
+  alt="Talking Characters"
+  className="rounded-xl border border-gray-800"
+/>
+<img
+  src="/screenshots/dashboard6.png"
+  alt="Cinema Studio"
+  className="rounded-xl border border-gray-800"
+/>
   </div>
 </div>
 
