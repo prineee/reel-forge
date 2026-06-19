@@ -577,7 +577,26 @@ export default function HomePage() {
 </div>
 </div>
       </footer>
+<section className="max-w-5xl mx-auto px-6 py-12">
+  <h3 className="text-xl font-bold mb-4 text-white">
+    JVZoo Required Disclaimer
+  </h3>
 
+  <p className="text-sm text-gray-300 leading-7">
+    Disclaimer: Please note that this product does not provide any guarantee of income or success.
+    The results achieved by the product owner or any other individuals mentioned are not indicative
+    of future success or earnings. This website is not affiliated with FaceBook or any of its
+    associated entities. Once you navigate away from FaceBook, the responsibility for the content
+    and its usage lies solely with the user.
+  </p>
+
+  <p className="text-sm text-gray-300 leading-7 mt-4">
+    We want to clarify that JVZoo serves as the retailer for the products featured on this site.
+    JVZoo® is a registered trademark of BBC Systems Inc. The role of JVZoo as a retailer does not
+    constitute an endorsement, approval, or review of these products or any claims, statements,
+    or opinions used in their promotion.
+  </p>
+</section>
       {/* Floating Zap */}
       <div className="fixed bottom-6 right-6 z-40">
         <Link href="/register"
