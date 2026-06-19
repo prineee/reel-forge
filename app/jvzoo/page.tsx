@@ -1,7 +1,7 @@
 export default function JVZooPage() {
   return (
     <main className="min-h-screen bg-black text-white">
-      <div className="max-w-6xl mx-auto px-6 py-20">
+      <div className="max-w-7xl mx-auto px-8 py-20">
 
         <h1 className="text-5xl font-bold mb-6">
           ReelForge AI Movie Studio
@@ -340,6 +340,7 @@ export default function JVZooPage() {
 
 </div>
 
+Support: support@reelforge.com
     Disclaimer
   </h3>
 
