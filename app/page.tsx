@@ -548,13 +548,34 @@ export default function HomePage() {
           </div>
           <p className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>&copy; {new Date().getFullYear()} ReelForge. All rights reserved.</p>
           <div className="flex flex-wrap justify-center gap-5 text-sm" style={{ color: 'rgba(255,255,255,0.35)' }}>
-            <Link href="/terms"        className="hover:text-white transition-colors">Terms</Link>
-            <Link href="/privacy"      className="hover:text-white transition-colors">Privacy</Link>
-            <Link href="/refund"       className="hover:text-white transition-colors">Refund</Link>
-            <Link href="/cancellation" className="hover:text-white transition-colors">Cancellation</Link>
-            <a href="mailto:support@reelforge.com" className="hover:text-white transition-colors">Contact</a>
-          </div>
-        </div>
+  <Link href="/terms" className="hover:text-white transition-colors">
+    Terms
+  </Link>
+
+  <Link href="/privacy" className="hover:text-white transition-colors">
+    Privacy
+  </Link>
+
+  <Link href="/refund" className="hover:text-white transition-colors">
+    Refund
+  </Link>
+
+  <Link href="/cancellation" className="hover:text-white transition-colors">
+    Cancellation
+  </Link>
+
+  <Link href="/disclaimer" className="hover:text-white transition-colors">
+    Disclaimer
+  </Link>
+
+  <a
+    href="mailto:support@reelforge.com"
+    className="hover:text-white transition-colors"
+  >
+    Contact
+  </a>
+</div>
+</div>
       </footer>
 
       {/* Floating Zap */}

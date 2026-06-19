@@ -3,12 +3,14 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import type {
-  Genre,
-  VisualStyle,
-  GenerateStoryResponse,
-  GeneratedScene,
-  GeneratedCharacter,
+import {
+  MODE_MULTIPLIER,
+  type Genre,
+  type VisualStyle,
+  type MovieMode,
+  type GenerateStoryResponse,
+  type GeneratedScene,
+  type GeneratedCharacter,
 } from '@/lib/cartoon/types'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -41,6 +43,12 @@ const DURATIONS: { mins: number; scenes: number; credits: number; label: string 
   { mins: 10, scenes: 100, credits: 150, label: '10 min' },
 ]
 
+const MOVIE_MODES: { value: MovieMode; label: string; description: string; badge?: string }[] = [
+  { value: 'standard',          label: 'Standard',          description: 'Cinematic narration with AI voiceover' },
+  { value: 'dialogue',          label: 'AI Dialogue',       description: 'Characters speak in their own voices', badge: '2x credits' },
+  { value: 'talking_character', label: 'Talking Character', description: 'Lip-synced character host', badge: 'Coming soon' },
+]
+
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function CartoonStudioPage() {
   const router = useRouter()
@@ -51,6 +59,7 @@ export default function CartoonStudioPage() {
   const [style,    setStyle]    = useState<VisualStyle>('anime')
   const [duration, setDuration] = useState(DURATIONS[0])
   const [voiceId,  setVoiceId]  = useState('tara')
+  const [movieMode, setMovieMode] = useState<MovieMode>('standard')
 
   // Generation state
   const [loading,  setLoading]  = useState(false)
@@ -73,6 +82,7 @@ export default function CartoonStudioPage() {
           visual_style:     style,
           duration_minutes: duration.mins,
           voice_id:         voiceId,
+          movie_mode:       movieMode,
         }),
       })
 
@@ -170,6 +180,34 @@ export default function CartoonStudioPage() {
             </div>
           </div>
 
+          {/* Movie Mode */}
+          <div>
+            <label style={{ display: 'block', fontSize: 14, fontWeight: 600, marginBottom: 8, color: '#cbd5e1' }}>
+              Movie Mode
+            </label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {MOVIE_MODES.map(m => (
+                <button
+                  key={m.value}
+                  onClick={() => setMovieMode(m.value)}
+                  style={{
+                    padding: '10px 14px', borderRadius: 8, cursor: 'pointer', textAlign: 'left',
+                    minWidth: 160,
+                    background: movieMode === m.value ? '#1e1b4b' : '#1e293b',
+                    border: `1px solid ${movieMode === m.value ? '#7c3aed' : '#334155'}`,
+                    color: '#fff', transition: 'all 0.15s',
+                  }}
+                >
+                  <div style={{ fontWeight: 600, fontSize: 13 }}>{m.label}</div>
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{m.description}</div>
+                  {m.badge && (
+                    <div style={{ fontSize: 10, color: '#4ade80', marginTop: 4 }}>{m.badge}</div>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Duration */}
           <div>
             <label style={{ display: 'block', fontSize: 14, fontWeight: 600, marginBottom: 8, color: '#cbd5e1' }}>
@@ -188,7 +226,9 @@ export default function CartoonStudioPage() {
                   }}
                 >
                   <div style={{ fontWeight: 700, fontSize: 15 }}>{d.label}</div>
-                  <div style={{ fontSize: 11, color: '#94a3b8' }}>{d.scenes} scenes · {d.credits}cr</div>
+                  <div style={{ fontSize: 11, color: '#94a3b8' }}>
+                    {d.scenes} scenes · {d.credits * MODE_MULTIPLIER[movieMode]}cr
+                  </div>
                 </button>
               ))}
             </div>

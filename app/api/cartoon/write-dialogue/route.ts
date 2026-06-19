@@ -166,7 +166,7 @@ Rules:
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (supabase.from('cartoon_stories') as any)
-      .update({ voice_map: voiceMap, movie_mode: 'ai_dialogue' })
+      .update({ voice_map: voiceMap, movie_mode: 'dialogue' })
       .eq('id', story_id)
 
     // Persist dialogue_json per scene

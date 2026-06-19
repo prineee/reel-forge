@@ -46,7 +46,7 @@ interface Props {
   scenes: StoryScene[]
 }
 
-type MovieMode = 'standard' | 'ai_dialogue'
+type MovieMode = 'standard' | 'dialogue' | 'talking_character'
 
 const STATUS_STYLE: Record<string, { bg: string; border: string; color: string }> = {
   completed:         { bg: '#14532d', border: '#22c55e', color: '#86efac' },
@@ -67,7 +67,9 @@ export function StoryboardView({ story, characters, scenes: initialScenes }: Pro
   const [videoError, setVideoError]               = useState('')
   const [videoUrl, setVideoUrl]                   = useState<string | null>(story.video_url)
 
-  const [movieMode, setMovieMode]         = useState<MovieMode>('standard')
+  const [movieMode, setMovieMode]         = useState<MovieMode>(
+    (story.movie_mode as MovieMode) || 'standard'
+  )
   const [isWritingDialogue, setIsWritingDialogue] = useState(false)
   const [dialogueError, setDialogueError]         = useState('')
 
@@ -376,8 +378,8 @@ export function StoryboardView({ story, characters, scenes: initialScenes }: Pro
                       color="#0891b2"
                     />
                     <ModeCard
-                      selected={movieMode === 'ai_dialogue'}
-                      onSelect={() => setMovieMode('ai_dialogue')}
+                      selected={movieMode === 'dialogue'}
+                      onSelect={() => setMovieMode('dialogue')}
                       title="AI Dialogue Movie"
                       description="Characters speak in their own voices"
                       credits={dialogueWritten ? 10 : 25}
@@ -402,8 +404,19 @@ export function StoryboardView({ story, characters, scenes: initialScenes }: Pro
                 </button>
               )}
 
+              {/* Talking Character — placeholder, not implemented yet */}
+              {movieMode === 'talking_character' && !isGeneratingVideo && (
+                <div style={{
+                  padding: '12px 16px', borderRadius: 8,
+                  background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.3)',
+                  color: '#c4b5fd', fontSize: 13,
+                }}>
+                  🚧 Talking Character mode is coming soon — rendering isn&apos;t available yet for this movie.
+                </div>
+              )}
+
               {/* AI Dialogue Movie actions */}
-              {movieMode === 'ai_dialogue' && !isGeneratingVideo && (
+              {movieMode === 'dialogue' && !isGeneratingVideo && (
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
                   {!dialogueWritten ? (
                     <button
@@ -467,7 +480,7 @@ export function StoryboardView({ story, characters, scenes: initialScenes }: Pro
                     <span style={{ fontSize: 14, fontWeight: 600 }}>Assembling movie...</span>
                     <span style={{
                       marginLeft: 'auto', fontSize: 13, fontWeight: 700,
-                      color: movieMode === 'ai_dialogue' ? '#a78bfa' : '#0891b2',
+                      color: movieMode === 'dialogue' ? '#a78bfa' : '#0891b2',
                     }}>
                       {videoProgress.pct}%
                     </span>
@@ -475,7 +488,7 @@ export function StoryboardView({ story, characters, scenes: initialScenes }: Pro
                   <div style={{ height: 5, background: '#0f172a', borderRadius: 3, overflow: 'hidden' }}>
                     <div style={{
                       height: '100%', width: `${videoProgress.pct}%`,
-                      background: movieMode === 'ai_dialogue'
+                      background: movieMode === 'dialogue'
                         ? 'linear-gradient(90deg,#6d28d9,#7c3aed)'
                         : 'linear-gradient(90deg,#0f766e,#0891b2)',
                       transition: 'width 0.4s ease', borderRadius: 3,
@@ -529,7 +542,7 @@ export function StoryboardView({ story, characters, scenes: initialScenes }: Pro
         </h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
           {scenes.map(scene => (
-            <SceneCard key={scene.id} scene={scene} showDialogue={movieMode === 'ai_dialogue'} />
+            <SceneCard key={scene.id} scene={scene} showDialogue={movieMode === 'dialogue' || movieMode === 'talking_character'} />
           ))}
         </div>
       </div>
