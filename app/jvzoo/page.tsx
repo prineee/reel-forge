@@ -28,6 +28,7 @@ export default function JVZooPage() {
             <p>Create dialogue videos with realistic voices.</p>
           </div>
         </div>
+        
 
         {/* JVZoo Button Area */}
 
@@ -52,10 +53,257 @@ export default function JVZooPage() {
     />
   </a>
 
+</div>{/* FEATURES */}
+
+<div className="my-20">
+  <h2 className="text-4xl font-bold text-center mb-10">
+    Everything You Need
+  </h2>
+
+  <div className="grid md:grid-cols-2 gap-6">
+
+    <div className="border border-gray-800 p-6 rounded-xl">
+      <h3 className="font-bold text-xl mb-2">AI Movie Generator</h3>
+      <p>Create complete AI movies from a single idea.</p>
+    </div>
+
+    <div className="border border-gray-800 p-6 rounded-xl">
+      <h3 className="font-bold text-xl mb-2">Cartoon Studio</h3>
+      <p>Generate animated stories with AI characters.</p>
+    </div>
+
+    <div className="border border-gray-800 p-6 rounded-xl">
+      <h3 className="font-bold text-xl mb-2">Talking Characters</h3>
+      <p>Create realistic dialogue videos with AI voices.</p>
+    </div>
+
+    <div className="border border-gray-800 p-6 rounded-xl">
+      <h3 className="font-bold text-xl mb-2">Cinema Studio</h3>
+      <p>Create cinematic films automatically.</p>
+    </div>
+
+  </div>
+</div>
+
+{/* FAQ */}
+
+<div className="my-20">
+
+  <h2 className="text-4xl font-bold text-center mb-10">
+    Frequently Asked Questions
+  </h2>
+
+  <div className="space-y-6">
+
+    <div>
+      <h3 className="font-bold text-xl">
+        Do I need video editing experience?
+      </h3>
+      <p className="text-gray-400">
+        No. ReelForge is beginner friendly.
+      </p>
+    </div>
+
+    <div>
+      <h3 className="font-bold text-xl">
+        Can I sell videos to clients?
+      </h3>
+      <p className="text-gray-400">
+        Yes. Commercial use is allowed.
+      </p>
+    </div>
+
+  </div>
+
+</div>
+
+{/* BOTTOM BUY BUTTON */}
+
+<div className="text-center my-20">
+
+  <h2 className="text-4xl font-bold mb-8">
+    Ready To Start?
+  </h2>
+
+  <a href="https://www.jvzoo.com/b/0/444419/3">
+    <img
+      src="https://i.jvzoo.com/0/444419/3"
+      alt="Buy ReelForge"
+      className="mx-auto"
+    />
+  </a>
+
 </div>
         <div className="mt-16 text-sm text-gray-400 leading-8">
 
   <h3 className="text-xl text-white font-bold mb-4">
+    {/* DEMO VIDEO */}
+
+<div className="my-20">
+  <h2 className="text-4xl font-bold text-center mb-8">
+    Watch ReelForge In Action
+  </h2>
+
+  <div className="max-w-4xl mx-auto">
+    <video
+      controls
+      className="w-full rounded-xl border border-gray-800"
+      poster="/demo-thumbnail.jpg"
+    >
+      <source src="/demo.mp4" type="video/mp4" />
+    </video>
+  </div>
+</div>
+
+{/* SCREENSHOTS */}
+
+<div className="my-20">
+  <h2 className="text-4xl font-bold text-center mb-10">
+    Inside The Dashboard
+  </h2>
+
+  <div className="grid md:grid-cols-3 gap-6">
+    <img
+      src="/dashboard1.png"
+      alt="Dashboard"
+      className="rounded-xl border border-gray-800"
+    />
+
+```
+<img
+  src="/dashboard2.png"
+  alt="Movie Studio"
+  className="rounded-xl border border-gray-800"
+/>
+
+<img
+  src="/dashboard3.png"
+  alt="Cartoon Studio"
+  className="rounded-xl border border-gray-800"
+/>
+```
+
+  </div>
+</div>
+
+{/* FEATURES */}
+
+<div className="my-20">
+  <h2 className="text-4xl font-bold text-center mb-10">
+    Everything You Need
+  </h2>
+
+  <div className="grid md:grid-cols-2 gap-6">
+
+```
+<div className="border border-gray-800 p-6 rounded-xl">
+  <h3 className="font-bold text-xl mb-2">AI Movie Generator</h3>
+  <p>Create complete AI movies from a single idea.</p>
+</div>
+
+<div className="border border-gray-800 p-6 rounded-xl">
+  <h3 className="font-bold text-xl mb-2">Cartoon Studio</h3>
+  <p>Generate animated stories with consistent characters.</p>
+</div>
+
+<div className="border border-gray-800 p-6 rounded-xl">
+  <h3 className="font-bold text-xl mb-2">Talking Characters</h3>
+  <p>Create realistic dialogue scenes with AI voices.</p>
+</div>
+
+<div className="border border-gray-800 p-6 rounded-xl">
+  <h3 className="font-bold text-xl mb-2">Cinema Studio</h3>
+  <p>Create cinematic films with AI generated scenes.</p>
+</div>
+```
+
+  </div>
+</div>
+
+{/* PRICING */}
+
+<div className="my-20 text-center">
+  <h2 className="text-4xl font-bold mb-8">
+    Launch Special Pricing
+  </h2>
+
+  <div className="max-w-md mx-auto border border-purple-500 rounded-xl p-8">
+    <h3 className="text-3xl font-bold mb-4">
+      ReelForge Commercial
+    </h3>
+
+```
+<div className="text-6xl font-bold text-purple-400 mb-4">
+  $29
+</div>
+
+<p className="text-gray-300">
+  One Time Payment
+</p>
+```
+
+  </div>
+</div>
+
+{/* FAQ */}
+
+<div className="my-20">
+  <h2 className="text-4xl font-bold text-center mb-10">
+    Frequently Asked Questions
+  </h2>
+
+  <div className="space-y-6">
+
+```
+<div>
+  <h3 className="font-bold text-xl">
+    Do I need video editing experience?
+  </h3>
+  <p className="text-gray-400">
+    No. ReelForge is designed for complete beginners.
+  </p>
+</div>
+
+<div>
+  <h3 className="font-bold text-xl">
+    Is commercial use allowed?
+  </h3>
+  <p className="text-gray-400">
+    Yes. You can create videos for yourself or clients.
+  </p>
+</div>
+
+<div>
+  <h3 className="font-bold text-xl">
+    Does it create AI movies automatically?
+  </h3>
+  <p className="text-gray-400">
+    Yes. Enter a topic and ReelForge generates scenes, narration and video.
+  </p>
+</div>
+```
+
+  </div>
+</div>
+
+{/* SECOND BUY BUTTON */}
+
+<div className="text-center my-20">
+
+  <h2 className="text-4xl font-bold mb-8">
+    Ready To Create AI Movies?
+  </h2>
+
+  <a href="https://www.jvzoo.com/b/0/444419/3">
+    <img
+      src="https://i.jvzoo.com/0/444419/3"
+      alt="Buy ReelForge"
+      className="mx-auto"
+    />
+  </a>
+
+</div>
+
     Disclaimer
   </h3>
 
@@ -98,6 +346,7 @@ export default function JVZooPage() {
     approval, or review of these products or any claims, statements,
     or opinions used in their promotion.
   </p>
+  
 
 </div>
 
