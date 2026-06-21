@@ -25,7 +25,7 @@ const STATS = [
 ]
 
 const PLANS = [
-  { name: 'Free',    priceINR: null,     priceUSD: null,  credits: 10,   features: ['10 lifetime credits', '720p exports', 'Watermarked output', 'Community support'],          cta: 'Start Free',   href: '/register', highlight: false },
+  { name: 'Free',    priceINR: null,     priceUSD: null,  credits: 10,   features: ['10 Pro credits', '720p exports', 'Watermarked output', 'Community support'],          cta: 'Start Free',   href: '/register', highlight: false },
   { name: 'Starter', priceINR: '₹499',   priceUSD: '$6',  credits: 100,  features: ['100 credits', '1080p exports', 'All content tools', 'Email support'],                     cta: 'Get Starter',  href: '/register', highlight: false },
   { name: 'Pro',     priceINR: '₹1,499', priceUSD: '$18', credits: 500,  features: ['500 credits', '4K exports', 'All content tools', 'Priority support', 'Affiliate program'],cta: 'Get Pro',      href: '/register', highlight: true  },
   { name: 'Agency',  priceINR: '₹4,999', priceUSD: '$60', credits: 2000, features: ['2,000 credits', '4K exports', 'API access', 'Dedicated manager', 'Custom branding'],      cta: 'Get Agency',   href: '/register', highlight: false },
@@ -72,7 +72,7 @@ const FAQS = [
   { q: 'Can I add captions to my reels?',         a: 'Yes! ReelForge includes a free caption burner with 6 styles including TikTok-style, karaoke, bold white, and yellow captions.' },
   { q: 'Does ReelForge support multiple languages?', a: 'ReelForge generates scripts in English and supports voiceovers in 6 different voice styles. Multi-language support is coming soon.' },
   { q: 'What is the HeyGen avatar feature?',      a: 'The HeyGen integration lets you create talking avatar videos where an AI presenter reads your script with realistic lip-sync — perfect for faceless content creators.' },
-  { q: 'How many reels can I create per month?',  a: 'It depends on your plan. Free users get 10 lifetime credits. Pro users get 500 credits per month (100 reels). Agency users get 2,000 credits per month.' },
+  { q: 'How many reels can I create per month?',  a: 'It depends on your plan. Free users get 10 Pro credits. Pro users get 500 credits per month (100 reels). Agency users get 2,000 credits per month.' },
 ]
 
 const jsonLd = {
@@ -569,7 +569,7 @@ export default function HomePage() {
   </Link>
 
   <a
-    href="mailto:support@reelforge.com"
+    href="mailto:support@fabricaipro.com"
     className="hover:text-white transition-colors"
   >
     Contact

@@ -340,7 +340,7 @@ export default function JVZooPage() {
 
 </div>
 
-Support: support@reelforge.com
+Support: support@fabricaipro.com
 
     Disclaimer
   </h3>

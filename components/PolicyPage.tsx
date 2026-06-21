@@ -80,7 +80,7 @@ export default function PolicyPage({ title, badge, effectiveDate, children }: Po
             <Link href="/privacy"      className="hover:text-white transition-colors">Privacy</Link>
             <Link href="/refund"       className="hover:text-white transition-colors">Refund</Link>
             <Link href="/cancellation" className="hover:text-white transition-colors">Cancellation</Link>
-            <a href="mailto:support@reelforge.com" className="hover:text-white transition-colors">Contact</a>
+            <a href="mailto:support@fabricaipro.com" className="hover:text-white transition-colors">Contact</a>
           </div>
         </div>
       </footer>

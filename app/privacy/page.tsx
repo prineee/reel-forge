@@ -14,7 +14,7 @@ export default function PrivacyPage() {
       <MetaGrid>
         <MetaItem label="Effective Date" value="May 28, 2026" />
         <MetaItem label="Website"        value="reelforge.fabricaipro.com" />
-        <MetaItem label="Contact"        value="support@reelforge.com" href="mailto:support@reelforge.com" />
+        <MetaItem label="Contact"        value="support@fabricaipro.com" href="mailto:support@fabricaipro.com" />
       </MetaGrid>
 
       <Section number={1} title="Introduction">
@@ -90,7 +90,7 @@ export default function PrivacyPage() {
         ]} />
         <P>
           To exercise these rights, email us at{' '}
-          <EmailLink address="support@reelforge.com" />.
+          <EmailLink address="support@fabricaipro.com" />.
         </P>
       </Section>
 
@@ -118,7 +118,7 @@ export default function PrivacyPage() {
       <Section number={11} title="Contact">
         <P>
           For privacy-related concerns, contact us at{' '}
-          <EmailLink address="support@reelforge.com" />.
+          <EmailLink address="support@fabricaipro.com" />.
         </P>
       </Section>
     </PolicyPage>

@@ -15,7 +15,7 @@ export default function TermsPage() {
         <MetaItem label="Effective Date" value="May 28, 2026" />
         <MetaItem label="Website"        value="reelforge.fabricaipro.com" />
         <MetaItem label="Company"        value="AI ReelForge" />
-        <MetaItem label="Contact"        value="support@reelforge.com" href="mailto:support@reelforge.com" />
+        <MetaItem label="Contact"        value="support@fabricaipro.com" href="mailto:support@fabricaipro.com" />
       </MetaGrid>
 
       <Section number={1} title="Acceptance of Terms">
@@ -48,7 +48,7 @@ export default function TermsPage() {
           'AI ReelForge operates on a subscription and credit-based model.',
           'Credits are consumed per action: captions (1 credit), thumbnails (1 credit), voiceovers (2 credits), and reels (5 credits).',
           'Credits do not carry over to the next billing cycle unless otherwise stated.',
-          'Lifetime deal credits are non-expiring.',
+          'Pro deal credits are non-expiring.',
           'We reserve the right to modify credit pricing with 30 days notice.',
         ]} />
       </Section>
@@ -112,7 +112,7 @@ export default function TermsPage() {
       <Section number={12} title="Contact">
         <P>
           For questions regarding these Terms, contact us at{' '}
-          <EmailLink address="support@reelforge.com" />.
+          <EmailLink address="support@fabricaipro.com" />.
         </P>
       </Section>
     </PolicyPage>

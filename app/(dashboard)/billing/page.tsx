@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils'
 export const metadata = { title: 'Billing' }
 
 const FREE_FEATURES = [
-  '10 lifetime credits',
+  '10 Pro credits',
   '720p exports',
   'Watermarked output',
   'Community support',

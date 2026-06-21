@@ -1,4 +1,4 @@
-export type PlanKey = 'starter' | 'pro' | 'agency' | 'lifetime'
+export type PlanKey = 'starter' | 'pro' | 'agency' | 'Pro'
 export type DbPlan  = 'free' | 'starter' | 'pro' | 'enterprise'
 
 export interface Plan {
@@ -64,11 +64,11 @@ export const PLANS: Plan[] = [
   },
 ]
 
-// Separate lifetime deal — Razorpay only, maps to Pro plan in the DB
+// Separate Pro deal — Razorpay only, maps to Pro plan in the DB
 export const LIFETIME_DEAL: Plan = {
-  key: 'lifetime',
+  key: 'Pro',
   dbPlan: 'pro',
-  name: 'Pro Lifetime',
+  name: 'Pro Pro',
   priceINR: 2999,
   priceUSD: 36,   // used for affiliate commission calculation only
   credits: 500,
@@ -76,7 +76,7 @@ export const LIFETIME_DEAL: Plan = {
     '500 credits · one-time',
     'Everything in Pro',
     'No recurring charges',
-    'Lifetime access',
+    'Pro access',
     'All future Pro updates',
     'Priority support forever',
   ],

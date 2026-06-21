@@ -66,8 +66,8 @@ export default function BillingClient({ currentPlan, userEmail }: Props) {
           amount:      order.amount,
           currency:    order.currency,
           name:        'AI ReelForge',
-          description: plan.key === 'lifetime'
-            ? 'Pro Lifetime — one-time'
+          description: plan.key === 'Pro'
+            ? 'Pro Pro — one-time'
             : `${order.planName} Plan`,
           order_id: order.orderId,
           prefill:  { email: userEmail },
@@ -129,8 +129,8 @@ export default function BillingClient({ currentPlan, userEmail }: Props) {
         rzp.open()
       })
 
-      const successMsg = plan.key === 'lifetime'
-        ? 'Lifetime deal activated! You now have Pro access forever.'
+      const successMsg = plan.key === 'Pro'
+        ? 'Pro deal activated! You now have Pro access forever.'
         : `Upgraded to ${plan.name}! Credits added to your account.`
       setToast({ type: 'success', msg: successMsg })
       router.refresh()
@@ -267,7 +267,7 @@ export default function BillingClient({ currentPlan, userEmail }: Props) {
         International: pay in $ via Stripe
       </p>
 
-      {/* ── Lifetime Deal ── */}
+      {/* ── Pro Deal ── */}
       <LifetimeDealCard
         currentPlan={currentPlan}
         loading={loading}
@@ -290,7 +290,7 @@ function LifetimeDealCard({
   onBuy:       () => void
 }) {
   const isProActive     = currentPlan === 'pro' || currentPlan === 'enterprise'
-  const isLifetimeLoading = loading === 'lifetime-rzp'
+  const isLifetimeLoading = loading === 'Pro-rzp'
 
   return (
     <div className="relative rounded-xl border-2 border-orange-600 bg-gradient-to-br from-orange-950/60 to-amber-950/40 p-5 overflow-hidden">
@@ -314,7 +314,7 @@ function LifetimeDealCard({
           <p className="text-xs text-orange-300/80">one-time payment · no subscription</p>
           <div className="flex items-center gap-1.5 mt-2">
             <Zap className="w-3.5 h-3.5 text-orange-400" />
-            <span className="text-sm font-bold text-orange-200">Pro Lifetime</span>
+            <span className="text-sm font-bold text-orange-200">Pro Pro</span>
           </div>
         </div>
 
@@ -345,7 +345,7 @@ function LifetimeDealCard({
             >
               {isLifetimeLoading
                 ? <><Loader2 className="w-4 h-4 animate-spin" /> Processing…</>
-                : <><Wallet className="w-4 h-4" /> Get Lifetime — ₹2,999</>}
+                : <><Wallet className="w-4 h-4" /> Get Pro — ₹2,999</>}
             </button>
           )}
           <p className="text-xs text-orange-400/60 text-center mt-1.5">Razorpay · UPI / Cards</p>

@@ -14,7 +14,7 @@ export default function RefundPage() {
       <MetaGrid>
         <MetaItem label="Effective Date" value="May 28, 2026" />
         <MetaItem label="Website"        value="reelforge.fabricaipro.com" />
-        <MetaItem label="Contact"        value="support@reelforge.com" href="mailto:support@reelforge.com" />
+        <MetaItem label="Contact"        value="support@fabricaipro.com" href="mailto:support@fabricaipro.com" />
       </MetaGrid>
 
       <Section number={1} title="Overview">
@@ -40,10 +40,10 @@ export default function RefundPage() {
         ]} />
       </Section>
 
-      <Section number={4} title="Lifetime Deals">
+      <Section number={4} title="Pro Deals">
         <Bullets items={[
-          'Lifetime deal purchases are eligible for a full refund within 7 days of purchase.',
-          'After 7 days, lifetime deals are non-refundable.',
+          'Pro deal purchases are eligible for a full refund within 7 days of purchase.',
+          'After 7 days, Pro deals are non-refundable.',
         ]} />
       </Section>
 
@@ -69,7 +69,7 @@ export default function RefundPage() {
       <Section number={7} title="Technical Issues">
         <P>
           If you experience a technical issue that prevents you from using the Service, please
-          contact us at <EmailLink address="support@reelforge.com" />. We will attempt to resolve
+          contact us at <EmailLink address="support@fabricaipro.com" />. We will attempt to resolve
           the issue within 48 hours. If we are unable to resolve it, a full refund will be issued.
         </P>
       </Section>
@@ -77,7 +77,7 @@ export default function RefundPage() {
       <Section number={8} title="How to Request a Refund">
         <P>To request a refund:</P>
         <Steps items={[
-          <>Email <EmailLink address="support@reelforge.com" /> with subject line &ldquo;Refund Request&rdquo;.</>,
+          <>Email <EmailLink address="support@fabricaipro.com" /> with subject line &ldquo;Refund Request&rdquo;.</>,
           'Include your registered email address and order ID.',
           'Briefly describe the reason for your refund request.',
           'We will process eligible refunds within 5–7 business days.',
@@ -88,7 +88,7 @@ export default function RefundPage() {
       <Section number={9} title="Contact">
         <P>
           For refund queries, contact us at{' '}
-          <EmailLink address="support@reelforge.com" />.
+          <EmailLink address="support@fabricaipro.com" />.
         </P>
       </Section>
     </PolicyPage>

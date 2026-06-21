@@ -14,7 +14,7 @@ export default function CancellationPage() {
       <MetaGrid>
         <MetaItem label="Effective Date" value="May 28, 2026" />
         <MetaItem label="Website"        value="reelforge.fabricaipro.com" />
-        <MetaItem label="Contact"        value="support@reelforge.com" href="mailto:support@reelforge.com" />
+        <MetaItem label="Contact"        value="support@fabricaipro.com" href="mailto:support@fabricaipro.com" />
       </MetaGrid>
 
       <Section number={1} title="Overview">
@@ -29,7 +29,7 @@ export default function CancellationPage() {
         <Bullets items={[
           <><Bold>Self-service:</Bold> Go to Dashboard → Billing → Cancel Subscription.</>,
           <><Bold>Email:</Bold> Send a cancellation request to{' '}
-            <EmailLink address="support@reelforge.com" /> with your registered email.</>,
+            <EmailLink address="support@fabricaipro.com" /> with your registered email.</>,
         ]} />
         <P>Cancellations are processed immediately upon request.</P>
       </Section>
@@ -48,7 +48,7 @@ export default function CancellationPage() {
         <Bullets items={[
           'Cancel anytime before your next renewal date to avoid being charged.',
           <>If you cancel on your renewal date, you may still be charged for that cycle. Contact us
-            immediately at <EmailLink address="support@reelforge.com" /> for assistance.</>,
+            immediately at <EmailLink address="support@fabricaipro.com" /> for assistance.</>,
         ]} />
       </Section>
 
@@ -60,9 +60,9 @@ export default function CancellationPage() {
         ]} />
       </Section>
 
-      <Section number={6} title="Lifetime Deals">
+      <Section number={6} title="Pro Deals">
         <Bullets items={[
-          'Lifetime deals are not subject to cancellation as there is no recurring billing.',
+          'Pro deals are not subject to cancellation as there is no recurring billing.',
           'Account access remains active permanently unless terminated for Terms violations.',
         ]} />
       </Section>
@@ -72,7 +72,7 @@ export default function CancellationPage() {
           If you wish to permanently delete your account and all associated data:
         </P>
         <Steps items={[
-          <>Email <EmailLink address="support@reelforge.com" /> with subject &ldquo;Account Deletion Request&rdquo;.</>,
+          <>Email <EmailLink address="support@fabricaipro.com" /> with subject &ldquo;Account Deletion Request&rdquo;.</>,
           'We will permanently delete your account within 7 business days.',
           'This action is irreversible — all your projects, content, and data will be permanently removed.',
           'Any active subscription will be cancelled automatically.',
@@ -99,7 +99,7 @@ export default function CancellationPage() {
       <Section number={10} title="Contact">
         <P>
           For cancellation assistance, contact us at{' '}
-          <EmailLink address="support@reelforge.com" />.
+          <EmailLink address="support@fabricaipro.com" />.
         </P>
       </Section>
     </PolicyPage>
