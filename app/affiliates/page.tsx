@@ -3,9 +3,8 @@ export default function AffiliatesPage() {
     <main className="min-h-screen bg-black text-white">
 
       {/* HERO */}
-      <section className="max-w-7xl mx-auto px-6 py-16">
-
-        <div className="grid lg:grid-cols-2 gap-10 items-center">
+      <section className="max-w-7xl mx-auto px-6 py-20">
+        <div className="grid lg:grid-cols-2 gap-12 items-center">
 
           <div>
             <h1 className="text-6xl font-bold mb-6">
@@ -13,13 +12,12 @@ export default function AffiliatesPage() {
             </h1>
 
             <p className="text-xl text-zinc-300 mb-8">
-              Create AI Movies In Minutes.
-              Earn high commissions by promoting one of the newest
-              AI movie creation platforms.
+              The All-In-One AI Movie Studio.
+              Help creators generate AI movies, animated stories,
+              dialogue videos and cinematic content in minutes.
             </p>
 
-            <div className="flex gap-4 flex-wrap">
-
+            <div className="flex flex-wrap gap-4">
               <a
                 href="https://www.jvzoo.com/affiliates/info/444419"
                 target="_blank"
@@ -35,7 +33,6 @@ export default function AffiliatesPage() {
               >
                 Visit Sales Page
               </a>
-
             </div>
           </div>
 
@@ -48,13 +45,10 @@ export default function AffiliatesPage() {
           </div>
 
         </div>
-
       </section>
 
       {/* VIDEO */}
-
       <section className="max-w-6xl mx-auto px-6 py-20">
-
         <h2 className="text-5xl font-bold text-center mb-10">
           Watch ReelForge In Action
         </h2>
@@ -68,279 +62,195 @@ export default function AffiliatesPage() {
             type="video/mp4"
           />
         </video>
-
       </section>
 
-      {/* COMMISSION */}
-
+      {/* COMMISSIONS */}
       <section className="max-w-7xl mx-auto px-6 py-20">
-
         <h2 className="text-5xl font-bold text-center mb-12">
           Affiliate Commission
         </h2>
 
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="flex flex-wrap justify-center gap-8">
 
-          <div className="bg-zinc-900 p-8 rounded-3xl">
-            <h3 className="text-3xl font-bold mb-3">50%</h3>
+          <div className="w-[300px] bg-zinc-900 p-8 rounded-3xl text-center">
+            <h3 className="text-4xl font-bold text-orange-500 mb-3">
+              50%
+            </h3>
             <p>Front End Commission</p>
           </div>
 
-          <div className="bg-zinc-900 p-8 rounded-3xl">
-            <h3 className="text-3xl font-bold mb-3">Instant</h3>
+          <div className="w-[300px] bg-zinc-900 p-8 rounded-3xl text-center">
+            <h3 className="text-4xl font-bold text-purple-500 mb-3">
+              Instant
+            </h3>
             <p>JVZoo Tracking</p>
           </div>
 
-          <div className="bg-zinc-900 p-8 rounded-3xl">
-            <h3 className="text-3xl font-bold mb-3">High EPC</h3>
-            <p>AI Software Niche</p>
+          <div className="w-[300px] bg-zinc-900 p-8 rounded-3xl text-center">
+            <h3 className="text-4xl font-bold text-green-500 mb-3">
+              High EPC
+            </h3>
+            <p>AI Software Market</p>
           </div>
 
         </div>
-
       </section>
 
-      {/* BANNERS */}
-
+      {/* RESOURCES */}
       <section className="max-w-7xl mx-auto px-6 py-20">
 
         <h2 className="text-5xl font-bold text-center mb-12">
-          Promotional Assets
+          Affiliate Resources
         </h2>
 
-        <div className="grid md:grid-cols-2 gap-8">
+        <div className="flex flex-wrap justify-center gap-8">
 
-          <div>
-            <img
-              src="/screenshots/banner-1200x630.png"
-              className="rounded-2xl"
-              alt=""
-            />
+          <div className="w-[320px] bg-zinc-900 p-8 rounded-3xl text-center">
+            <h3 className="text-2xl font-bold mb-4">
+              Download Logos
+            </h3>
+
+            <p className="text-zinc-400 mb-6">
+              Official ReelForge logos and branding assets.
+            </p>
+
+            <a
+              href="/screenshots/logo.png"
+              target="_blank"
+              className="bg-purple-600 px-6 py-3 rounded-xl"
+            >
+              Download
+            </a>
           </div>
 
-          <div>
-            <img
-              src="/screenshots/dashboard-mockup.png"
-              className="rounded-2xl"
-              alt=""
-            />
+          <div className="w-[320px] bg-zinc-900 p-8 rounded-3xl text-center">
+            <h3 className="text-2xl font-bold mb-4">
+              Download Banners
+            </h3>
+
+            <p className="text-zinc-400 mb-6">
+              High converting promotional banners.
+            </p>
+
+            <a
+              href="/screenshots/banner-1200x630.png"
+              target="_blank"
+              className="bg-pink-600 px-6 py-3 rounded-xl"
+            >
+              Download
+            </a>
           </div>
 
-          <div>
-            <img
-              src="/screenshots/box-mockup.png"
-              className="rounded-2xl"
-              alt=""
-            />
-          </div>
+          <div className="w-[320px] bg-zinc-900 p-8 rounded-3xl text-center">
+            <h3 className="text-2xl font-bold mb-4">
+              Product Demo
+            </h3>
 
-          <div>
-            <img
-              src="/screenshots/logo.png"
-              className="rounded-2xl"
-              alt=""
-            />
+            <p className="text-zinc-400 mb-6">
+              Download promotional demo video.
+            </p>
+
+            <a
+              href="/affiliate-promo-video/affiliate-promo.mp4"
+              target="_blank"
+              className="bg-orange-500 px-6 py-3 rounded-xl"
+            >
+              Download
+            </a>
           </div>
 
         </div>
 
       </section>
 
-      {/* EMAIL SWIPES */}
+      {/* REVIEW ACCESS */}
+      <section className="max-w-4xl mx-auto px-6 py-20">
 
+        <div className="rounded-3xl p-12 bg-gradient-to-r from-purple-700 to-orange-700 text-center">
+
+          <h2 className="text-4xl font-bold mb-4">
+            Need Review Access?
+          </h2>
+
+          <p className="mb-8 text-lg">
+            We provide review access, bonus approval and affiliate support.
+          </p>
+
+          <a
+            href="mailto:support@fabricaipro.com"
+            className="bg-white text-black px-8 py-4 rounded-xl font-bold"
+          >
+            Request Review Access
+          </a>
+
+        </div>
+
+      </section>
+
+      {/* CONTEST */}
+      <section className="max-w-6xl mx-auto px-6 py-20">
+
+        <h2 className="text-5xl font-bold text-center mb-12">
+          Affiliate Contest
+        </h2>
+
+        <div className="flex flex-wrap justify-center gap-8">
+
+          <div className="w-[280px] bg-zinc-900 p-8 rounded-3xl text-center">
+            <h3 className="text-4xl font-bold text-yellow-500">
+              🏅 $500
+            </h3>
+            <p>Top Affiliate</p>
+          </div>
+
+          <div className="w-[280px] bg-zinc-900 p-8 rounded-3xl text-center">
+            <h3 className="text-4xl font-bold text-gray-300">
+              🥈 $250
+            </h3>
+            <p>Second Place</p>
+          </div>
+
+          <div className="w-[280px] bg-zinc-900 p-8 rounded-3xl text-center">
+            <h3 className="text-4xl font-bold text-orange-500">
+              🥉 $100
+            </h3>
+            <p>Third Place</p>
+          </div>
+
+        </div>
+
+      </section>
+
+      {/* EMAIL SWIPE */}
       <section className="max-w-5xl mx-auto px-6 py-20">
 
         <h2 className="text-5xl font-bold text-center mb-10">
           Affiliate Email Swipe
         </h2>
 
-        <div className="bg-zinc-900 p-8 rounded-3xl">
+        <div className="bg-zinc-900 p-10 rounded-3xl">
 
-          <p className="mb-4">
+          <p className="mb-5">
             Subject: Create AI Movies In Minutes
           </p>
 
           <p className="text-zinc-300 leading-8">
-            Want to create stunning AI movies, animated films,
-            AI dialogue videos and story-based content without
-            expensive software?
+            Want to create AI movies, animated films and story videos
+            without expensive software?
             <br /><br />
-            ReelForge makes it possible in minutes.
+            ReelForge lets anyone create professional AI content in minutes.
             <br /><br />
-            Click Here:
+            Check it out:
+            <br />
             https://reelforge.fabricaipro.com
           </p>
 
         </div>
-{/* AFFILIATE TOOLS */}
-
-<section className="max-w-7xl mx-auto px-6 py-20">
-
-  <h2 className="text-5xl font-bold text-center mb-12">
-    Affiliate Resources
-  </h2>
-
-  <div className="flex flex-wrap justify-center gap-8">
-
-  {/* Card 1 */}
-  <div className="w-[320px] bg-zinc-900 p-8 rounded-3xl text-center">
-    ...
-  </div>
-
-  {/* Card 2 */}
-  <div className="w-[320px] bg-zinc-900 p-8 rounded-3xl text-center">
-    ...
-  </div>
-
-  {/* Card 3 */}
-  <div className="w-[320px] bg-zinc-900 p-8 rounded-3xl text-center">
-    ...
-  </div>
-
-</div>
-```
-<div className="bg-zinc-900 p-8 rounded-3xl text-center">
-  <h3 className="text-2xl font-bold mb-4">
-    Download Logos
-  </h3>
-
-  <p className="text-zinc-400 mb-6">
-    Official ReelForge logos and branding assets.
-  </p>
-
-  <a
-    href="/screenshots/logo.png"
-    target="_blank"
-    className="bg-purple-600 px-6 py-3 rounded-xl inline-block"
-  >
-    Download
-  </a>
-</div>
-
-<div className="bg-zinc-900 p-8 rounded-3xl text-center">
-  <h3 className="text-2xl font-bold mb-4">
-    Download Banners
-  </h3>
-
-  <p className="text-zinc-400 mb-6">
-    High-converting promotional banners.
-  </p>
-
-  <a
-    href="/screenshots/banner-1200x630.png"
-    target="_blank"
-    className="bg-pink-600 px-6 py-3 rounded-xl inline-block"
-  >
-    Download
-  </a>
-</div>
-
-<div className="bg-zinc-900 p-8 rounded-3xl text-center">
-  <h3 className="text-2xl font-bold mb-4">
-    Product Demo
-  </h3>
-
-  <p className="text-zinc-400 mb-6">
-    Download promo video for reviews.
-  </p>
-
-  <a
-    href="/affiliate-promo-video/affiliate-promo.mp4"
-    target="_blank"
-    className="bg-orange-600 px-6 py-3 rounded-xl inline-block"
-  >
-    Download
-  </a>
-</div>
-```
-
-  </div>
-
-</section>
-
-{/* REVIEW ACCESS */}
-
-<section className="max-w-5xl mx-auto px-6 py-20">
-
-  <section className="max-w-4xl mx-auto px-6 py-20">
-
-```
-<h2 className="text-5xl font-bold mb-6">
-  Need Review Access?
-</h2>
-
-<p className="text-xl text-zinc-200 mb-8">
-  We provide review access, bonus approval and affiliate support.
-</p>
-
-<a
-  href="mailto:support@fabricaipro.com?subject=ReelForge Review Access Request"
-  className="bg-white text-black px-8 py-4 rounded-xl font-bold"
->
-  Request Review Access
-</a>
-```
-
-  </div>
-
-</section>
-
-{/* AFFILIATE CONTEST */}
-
-<section className="max-w-7xl mx-auto px-6 py-20">
-
-  <h2 className="text-5xl font-bold text-center mb-12">
-    Affiliate Contest
-  </h2>
-
-  <div className="flex flex-wrap justify-center gap-8">
-
-  <div className="w-[280px] bg-zinc-900 p-8 rounded-3xl text-center">
-    ...
-  </div>
-
-  <div className="w-[280px] bg-zinc-900 p-8 rounded-3xl text-center">
-    ...
-  </div>
-
-  <div className="w-[280px] bg-zinc-900 p-8 rounded-3xl text-center">
-    ...
-  </div>
-
-</div>
-
-```
-<div className="bg-zinc-900 p-8 rounded-3xl text-center">
-  <h3 className="text-4xl font-bold text-yellow-400 mb-3">
-    🥇 $500
-  </h3>
-  <p>Top Affiliate</p>
-</div>
-
-<div className="bg-zinc-900 p-8 rounded-3xl text-center">
-  <h3 className="text-4xl font-bold text-gray-300 mb-3">
-    🥈 $250
-  </h3>
-  <p>Second Place</p>
-</div>
-
-<div className="bg-zinc-900 p-8 rounded-3xl text-center">
-  <h3 className="text-4xl font-bold text-orange-500 mb-3">
-    🥉 $100
-  </h3>
-  <p>Third Place</p>
-</div>
-```
-
-  </div>
-
-</section>
 
       </section>
 
       {/* CTA */}
-
-      <section className="text-center py-24 max-w-6xl mx-auto">
+      <section className="text-center py-24">
 
         <h2 className="text-6xl font-bold mb-8">
           Start Promoting ReelForge Today
