@@ -180,8 +180,24 @@ export default function AffiliatesPage() {
     Affiliate Resources
   </h2>
 
-  <div className="grid md:grid-cols-3 gap-8">
+  <div className="flex flex-wrap justify-center gap-8">
 
+  {/* Card 1 */}
+  <div className="w-[320px] bg-zinc-900 p-8 rounded-3xl text-center">
+    ...
+  </div>
+
+  {/* Card 2 */}
+  <div className="w-[320px] bg-zinc-900 p-8 rounded-3xl text-center">
+    ...
+  </div>
+
+  {/* Card 3 */}
+  <div className="w-[320px] bg-zinc-900 p-8 rounded-3xl text-center">
+    ...
+  </div>
+
+</div>
 ```
 <div className="bg-zinc-900 p-8 rounded-3xl text-center">
   <h3 className="text-2xl font-bold mb-4">
@@ -246,7 +262,7 @@ export default function AffiliatesPage() {
 
 <section className="max-w-5xl mx-auto px-6 py-20">
 
-  <div className="bg-gradient-to-r from-purple-900 to-orange-900 rounded-3xl p-10 text-center">
+  <section className="max-w-4xl mx-auto px-6 py-20">
 
 ```
 <h2 className="text-5xl font-bold mb-6">
@@ -277,7 +293,21 @@ export default function AffiliatesPage() {
     Affiliate Contest
   </h2>
 
-  <div className="grid md:grid-cols-3 gap-8">
+  <div className="flex flex-wrap justify-center gap-8">
+
+  <div className="w-[280px] bg-zinc-900 p-8 rounded-3xl text-center">
+    ...
+  </div>
+
+  <div className="w-[280px] bg-zinc-900 p-8 rounded-3xl text-center">
+    ...
+  </div>
+
+  <div className="w-[280px] bg-zinc-900 p-8 rounded-3xl text-center">
+    ...
+  </div>
+
+</div>
 
 ```
 <div className="bg-zinc-900 p-8 rounded-3xl text-center">
@@ -310,7 +340,7 @@ export default function AffiliatesPage() {
 
       {/* CTA */}
 
-      <section className="text-center py-24">
+      <section className="text-center py-24 max-w-6xl mx-auto">
 
         <h2 className="text-6xl font-bold mb-8">
           Start Promoting ReelForge Today
