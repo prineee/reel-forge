@@ -172,6 +172,139 @@ export default function AffiliatesPage() {
           </p>
 
         </div>
+{/* AFFILIATE TOOLS */}
+
+<section className="max-w-7xl mx-auto px-6 py-20">
+
+  <h2 className="text-5xl font-bold text-center mb-12">
+    Affiliate Resources
+  </h2>
+
+  <div className="grid md:grid-cols-3 gap-8">
+
+```
+<div className="bg-zinc-900 p-8 rounded-3xl text-center">
+  <h3 className="text-2xl font-bold mb-4">
+    Download Logos
+  </h3>
+
+  <p className="text-zinc-400 mb-6">
+    Official ReelForge logos and branding assets.
+  </p>
+
+  <a
+    href="/screenshots/logo.png"
+    target="_blank"
+    className="bg-purple-600 px-6 py-3 rounded-xl inline-block"
+  >
+    Download
+  </a>
+</div>
+
+<div className="bg-zinc-900 p-8 rounded-3xl text-center">
+  <h3 className="text-2xl font-bold mb-4">
+    Download Banners
+  </h3>
+
+  <p className="text-zinc-400 mb-6">
+    High-converting promotional banners.
+  </p>
+
+  <a
+    href="/screenshots/banner-1200x630.png"
+    target="_blank"
+    className="bg-pink-600 px-6 py-3 rounded-xl inline-block"
+  >
+    Download
+  </a>
+</div>
+
+<div className="bg-zinc-900 p-8 rounded-3xl text-center">
+  <h3 className="text-2xl font-bold mb-4">
+    Product Demo
+  </h3>
+
+  <p className="text-zinc-400 mb-6">
+    Download promo video for reviews.
+  </p>
+
+  <a
+    href="/affiliate-promo-video/affiliate-promo.mp4"
+    target="_blank"
+    className="bg-orange-600 px-6 py-3 rounded-xl inline-block"
+  >
+    Download
+  </a>
+</div>
+```
+
+  </div>
+
+</section>
+
+{/* REVIEW ACCESS */}
+
+<section className="max-w-5xl mx-auto px-6 py-20">
+
+  <div className="bg-gradient-to-r from-purple-900 to-orange-900 rounded-3xl p-10 text-center">
+
+```
+<h2 className="text-5xl font-bold mb-6">
+  Need Review Access?
+</h2>
+
+<p className="text-xl text-zinc-200 mb-8">
+  We provide review access, bonus approval and affiliate support.
+</p>
+
+<a
+  href="mailto:support@fabricaipro.com?subject=ReelForge Review Access Request"
+  className="bg-white text-black px-8 py-4 rounded-xl font-bold"
+>
+  Request Review Access
+</a>
+```
+
+  </div>
+
+</section>
+
+{/* AFFILIATE CONTEST */}
+
+<section className="max-w-7xl mx-auto px-6 py-20">
+
+  <h2 className="text-5xl font-bold text-center mb-12">
+    Affiliate Contest
+  </h2>
+
+  <div className="grid md:grid-cols-3 gap-8">
+
+```
+<div className="bg-zinc-900 p-8 rounded-3xl text-center">
+  <h3 className="text-4xl font-bold text-yellow-400 mb-3">
+    🥇 $500
+  </h3>
+  <p>Top Affiliate</p>
+</div>
+
+<div className="bg-zinc-900 p-8 rounded-3xl text-center">
+  <h3 className="text-4xl font-bold text-gray-300 mb-3">
+    🥈 $250
+  </h3>
+  <p>Second Place</p>
+</div>
+
+<div className="bg-zinc-900 p-8 rounded-3xl text-center">
+  <h3 className="text-4xl font-bold text-orange-500 mb-3">
+    🥉 $100
+  </h3>
+  <p>Third Place</p>
+</div>
+```
+
+  </div>
+
+</section>
 
       </section>
 
