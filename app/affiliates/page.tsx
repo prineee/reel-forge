@@ -183,24 +183,11 @@ export default function AffiliatesPage() {
           Start Promoting ReelForge Today
         </h2>
 
-        <div className="flex justify-center gap-4 flex-wrap">
-
-  <a
-    href="https://www.jvzoo.com/affiliates/info/444419"
-    target="_blank"
-    className="bg-purple-600 hover:bg-purple-700 px-8 py-4 rounded-xl font-bold"
-  >
-    JVZoo Affiliate Link
-  </a>
-
-  <a
-    href="mailto:support@fabricaipro.com?subject=ReelForge Affiliate Request"
-    className="bg-orange-500 hover:bg-orange-600 px-8 py-4 rounded-xl font-bold"
-  >
-    Request Review Access
-  </a>
-
-</div>
+        <a
+          href="https://www.jvzoo.com/affiliates/info/444419"
+          target="_blank"
+          className="bg-orange-500 hover:bg-orange-600 px-10 py-5 rounded-xl text-xl font-bold"
+        >
           Get Affiliate Link
         </a>
 
